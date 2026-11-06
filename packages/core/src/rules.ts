@@ -148,6 +148,16 @@ export function checkSpatial(
 
 /* ---------- P1-8: temporal ---------- */
 
+/** "under a minute", "1 minute", "45 minutes", "3.5 hours" */
+function describeGap(minutes: number): string {
+  if (minutes < 1) return "under a minute"
+  if (minutes < 120) {
+    const m = Math.round(minutes)
+    return `${m} minute${m === 1 ? "" : "s"}`
+  }
+  return `${(minutes / 60).toFixed(1)} hours`
+}
+
 /**
  * Impossible travel: two scans of one unit further apart than the speed
  * ceiling allows. Scans can arrive out of order (offline sync), so the time
@@ -175,18 +185,18 @@ export function checkTemporal(
     }
     if (worst) {
       const km = Math.round(worst.km)
-      const mins = Math.round(worst.minutes)
+      const gap = describeGap(worst.minutes)
       return {
         rule,
         outcome: "stop",
         reason: {
           code: "IMPOSSIBLE_TRAVEL",
-          message: `This code was scanned ${km} km away only ${mins} minute${mins === 1 ? "" : "s"} apart. It may be copied.`,
+          message: `This code was scanned ${km} km apart in ${gap}. It may be copied.`,
         },
         alert: {
           type: "IMPOSSIBLE_TRAVEL",
           priority: "high",
-          message: `Same unit scanned ${km} km apart within ${mins} minute${mins === 1 ? "" : "s"}.`,
+          message: `Same unit scanned ${km} km apart in ${gap}.`,
         },
       }
     }

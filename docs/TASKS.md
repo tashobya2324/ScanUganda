@@ -7,7 +7,7 @@
 **Size:** S ≤ 2 h · M ≤ half a day · L ≤ 1 day. Split anything bigger.
 **Deps:** task IDs that must be `DONE` first.
 
-**Current phase: 2 done, 3 next (Web console). Phases 1 and 2 were started before Phase 0 finished, at the team's request. Phase 0 leftovers (P0-1..P0-5, P0-7, P0-8) still open.**
+**Current phase: 3 done, 4 next (PWA). Phases 1 and 2 were started before Phase 0 finished, at the team's request. Phase 0 leftovers (P0-1..P0-5, P0-7, P0-8) still open. Console design tokens exist in `apps/console/src/index.css` but are not yet shared with the PWA (P0-4).**
 
 ---
 
@@ -59,15 +59,15 @@
 
 | ID | Task | Owner | Status | Size | Deps | Notes |
 |---|---|---|---|---|---|---|
-| P3-1 | App shell, routing, sign-in, role-based navigation | - | TODO | M | P0-4, P2-2 | |
-| P3-2 | Overview dashboard (scans, alerts, genuine ratio, trend) | - | TODO | M | P3-1, P2-6 | |
-| P3-3 | Products and batches CRUD | - | TODO | M | P3-1, P2-4 | |
-| P3-4 | Generate codes; CSV export and printable QR sheet | - | TODO | M | P3-3 | |
-| P3-5 | Live scan feed | - | TODO | M | P3-1, P2-3 | |
-| P3-6 | Map of scans and alerts | - | TODO | M | P3-5 | Leaflet + OpenStreetMap tiles |
-| P3-7 | Alert inbox with status workflow | - | TODO | M | P3-1, P2-6 | |
-| P3-8 | Recalls: issue and lift | - | TODO | S | P3-3, P2-5 | |
-| P3-9 | Users and roles management | - | TODO | S | P3-1 | |
+| P3-1 | App shell, routing, sign-in, role-based navigation | Tashobya | DONE | M | P0-4, P2-2 | Sign-in, session expiry handling, role-based nav. Narrow-screen layout built but not visually checked. |
+| P3-2 | Overview dashboard (scans, alerts, genuine ratio, trend) | Tashobya | DONE | M | P3-1, P2-6 | |
+| P3-3 | Products and batches CRUD | Tashobya | DONE | M | P3-1, P2-4 | Create and list only; no edit or delete of products/batches yet. |
+| P3-4 | Generate codes; CSV export and printable QR sheet | Tashobya | DONE | M | P3-3 | CSV built in the browser from the one-time result; QR sheet uses the print stylesheet. |
+| P3-5 | Live scan feed | Tashobya | DONE | M | P3-1, P2-3 | Polls every 5 s (pausable); not a websocket. |
+| P3-6 | Map of scans and alerts | Tashobya | DONE | M | P3-5 | Leaflet + OpenStreetMap tiles |
+| P3-7 | Alert inbox with status workflow | Tashobya | DONE | M | P3-1, P2-6 | |
+| P3-8 | Recalls: issue and lift | Tashobya | DONE | S | P3-3, P2-5 | |
+| P3-9 | Users and roles management | Tashobya | DONE | S | P3-1 | List and create only; no disable, edit or password reset yet. |
 
 ## Phase 4: PWA (`apps/pwa`)
 
@@ -132,6 +132,8 @@
 ## Activity log
 
 Newest first. One line per update: `date · who · task ID · what changed`. Anyone changing a status adds a line here.
+
+- 2026-11-06 · Tashobya · P3-1..P3-9 · Console built in `apps/console`: sign-in, overview + trend, batches and products, code generation (CSV + QR print sheet), lifecycle release, recall/lift, live feed, map, alerts inbox, team. 33 UI tests; typecheck and build pass. Walked through in a headless browser as admin and manufacturer: create batch → generate → CSV download → print view → release → recall → lift, no browser errors. Also reworded the impossible-travel message in core ("in under a minute" instead of "within 0 minutes"; 84 core tests). Not yet committed.
 
 - 2026-11-06 · Tashobya · P2-1..P2-10, P0-6 · API built in `apps/api` (Fastify + node:sqlite): verify, offline sync, reports, auth, batches/codes/recalls, alerts, scans, overview, admin; OpenAPI at `/docs`. 74 tests pass, 98.6 % coverage; smoke-tested over real HTTP with a seeded file database. Fixed along the way: two queries bound a parameter that had no placeholder. Not yet committed.
 

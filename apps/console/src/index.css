@@ -1,0 +1,95 @@
+@import "tailwindcss";
+@import "@fontsource-variable/instrument-sans";
+@import "@fontsource-variable/jetbrains-mono";
+@import "leaflet/dist/leaflet.css";
+
+/* Design tokens: see docs/DESIGN.md. Use these, never one-off values. */
+@theme {
+  --font-sans: "Instrument Sans Variable", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  --color-bg: #f7f5f0;
+  --color-surface: #ffffff;
+  --color-ink: #16181a;
+  --color-ink-2: #5b6168;
+  --color-line: #e4e0d6;
+  --color-line-2: #efece4;
+  --color-accent: #0f5c47;
+  --color-accent-ink: #ffffff;
+  --color-accent-soft: #e3eee9;
+
+  --color-genuine: #117a4a;
+  --color-genuine-soft: #e2f1e9;
+  --color-check: #9a5b00;
+  --color-check-soft: #f7ecd9;
+  --color-stop: #b3261e;
+  --color-stop-soft: #f8e4e2;
+
+  --radius-control: 6px;
+  --radius-panel: 12px;
+  --shadow-float: 0 8px 30px -8px rgb(22 24 26 / 0.18), 0 0 0 1px rgb(22 24 26 / 0.05);
+}
+
+@layer base {
+  html {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    min-height: 100vh;
+  }
+  h1, h2, h3 {
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+  /* Tabular figures wherever numbers line up */
+  table, .num {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Quiet map tiles so verdict markers carry the colour */
+.leaflet-tile-pane {
+  filter: grayscale(0.75) contrast(0.95) brightness(1.03);
+}
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: #e9e6dd;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes shimmer {
+  to { background-position: -200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--color-line-2) 25%, #f6f4ee 50%, var(--color-line-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: 6px;
+}
+
+@page { margin: 12mm; }
+@media print {
+  html, body { background: #fff; }
+}

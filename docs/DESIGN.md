@@ -35,7 +35,7 @@ Neutral, warm, restrained. All pairs must meet WCAG AA (4.5:1 text, 3:1 large te
 | `--accent` | `#0F5C47` | primary actions, links, focus (deep green) |
 | `--accent-ink` | `#FFFFFF` | text on accent |
 | `--genuine` | `#117A4A` | verdict: genuine |
-| `--check` | `#B26A00` | verdict: check |
+| `--check` | `#9A5B00` | verdict: check (darkened from #B26A00 to reach 4.5:1 on white) |
 | `--stop` | `#B3261E` | verdict: stop |
 
 Verdict screens may fill the background with the verdict colour; everywhere else colour is used sparingly. Dark theme: same roles remapped, designed, not auto-inverted; contrast re-checked. Finalise exact values in P0-4 and record them here.

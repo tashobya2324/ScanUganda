@@ -124,6 +124,14 @@ describe("temporal (P1-8)", () => {
   it("stops two distant places at the same instant", () => {
     const r = checkTemporal([{ at: NOW, position: at("fortportal") }], here, cfg)
     expect(r.outcome).toBe("stop")
+    expect(r.reason!.message).toContain("in under a minute")
+  })
+
+  it("words the time gap naturally, in minutes or hours", () => {
+    const gap = (ms: number) => checkTemporal([{ at: NOW - ms, position: at("fortportal") }], here, { ...cfg, maxSpeedKmh: 10 }).reason!.message
+    expect(gap(90_000)).toContain("in 2 minutes.")
+    expect(gap(30 * 60_000)).toContain("in 30 minutes.")
+    expect(gap(3 * HOUR)).toContain("in 3.0 hours.")
   })
 
   it("passes the same journey with enough time", () => {
@@ -173,7 +181,7 @@ describe("temporal (P1-8)", () => {
       cfg,
     )
     expect(r.outcome).toBe("stop")
-    expect(r.reason!.message).toContain("1 minute ")
+    expect(r.reason!.message).toContain("in 1 minute.")
   })
 
   it("asks to check once the per-unit scan limit is reached, even in one place", () => {
