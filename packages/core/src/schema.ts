@@ -138,4 +138,13 @@ CREATE TABLE reports (
 );
 `,
   },
+  {
+    id: "002_scan_client_id",
+    // Offline sync retries must not double-count a scan: the device assigns an id
+    // to each queued scan and the server ignores a repeat.
+    sql: /* sql */ `
+ALTER TABLE scans ADD COLUMN client_id TEXT;
+CREATE UNIQUE INDEX scans_client_id_idx ON scans (client_id) WHERE client_id IS NOT NULL;
+`,
+  },
 ]

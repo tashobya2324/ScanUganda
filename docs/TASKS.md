@@ -7,7 +7,7 @@
 **Size:** S ≤ 2 h · M ≤ half a day · L ≤ 1 day. Split anything bigger.
 **Deps:** task IDs that must be `DONE` first.
 
-**Current phase: 1 (Domain and verification engine), started before Phase 0 finished at the team's request. Phase 0 leftovers (P0-1..P0-8) still open.**
+**Current phase: 2 done, 3 next (Web console). Phases 1 and 2 were started before Phase 0 finished, at the team's request. Phase 0 leftovers (P0-1..P0-5, P0-7, P0-8) still open.**
 
 ---
 
@@ -20,7 +20,7 @@
 | P0-3 | CI workflow: install, typecheck, lint, test, build on every push and PR | - | TODO | S | P0-2 | |
 | P0-4 | Design tokens and base components (button, input, field, sheet, verdict mark, table) per DESIGN.md | - | TODO | M | P0-1 | |
 | P0-5 | Audit current prototype against DESIGN.md; list what to keep or redo | - | TODO | S | P0-4 | Output: note in `docs/decisions/` |
-| P0-6 | Seed data: 4 manufacturers, ~12 products, batches, regions (districts with coordinates), units | - | TODO | M | P1-1 | Real brands only as fiction-safe examples; mark as sample data |
+| P0-6 | Seed data: 4 manufacturers, ~12 products, batches, regions (districts with coordinates), units | Tashobya | DONE | M | P1-1 | Done in `apps/api/src/seed.ts`: 4 invented manufacturers, 5 products, 6 scenario batches, 9 regions. Real brands deliberately not used (see decision note) |
 | P0-7 | Rewrite root `README.md` (what it is, how to run, where docs are) | - | TODO | S | P0-1 | |
 | P0-8 | Replace the first commit's AI co-author trailer? (needs a force-push; **team decision**) | - | BLOCKED | S | - | Awaiting decision from repo owner |
 
@@ -44,16 +44,16 @@
 
 | ID | Task | Owner | Status | Size | Deps | Notes |
 |---|---|---|---|---|---|---|
-| P2-1 | Server skeleton: config, logging, error format, health route, DB connection | - | TODO | S | P1-1 | |
-| P2-2 | Auth for manufacturer/admin (sessions or JWT), roles | - | TODO | M | P2-1 | |
-| P2-3 | `POST /verify` (anonymous allowed) using core engine; stores scan | - | TODO | M | P1-9, P2-1 | |
-| P2-4 | Batches, units and code generation endpoints; CSV export | - | TODO | M | P2-2 | |
-| P2-5 | Recalls and lifecycle state transitions | - | TODO | M | P2-2 | |
-| P2-6 | Alerts: list, filter, status changes | - | TODO | M | P2-3 | |
-| P2-7 | Scan history and report-a-product endpoints | - | TODO | M | P2-3 | |
-| P2-8 | Sync endpoints: public keys, recall list delta, batch queued offline scans | - | TODO | M | P2-3 | |
-| P2-9 | Validation, rate limiting, OpenAPI at `/docs` | - | TODO | M | P2-3 | |
-| P2-10 | Integration tests on a temp DB for every endpoint | - | TODO | L | P2-3..P2-8 | |
+| P2-1 | Server skeleton: config, logging, error format, health route, DB connection | Tashobya | DONE | S | P1-1 | |
+| P2-2 | Auth for manufacturer/admin (sessions or JWT), roles | Tashobya | DONE | M | P2-1 | |
+| P2-3 | `POST /verify` (anonymous allowed) using core engine; stores scan | Tashobya | DONE | M | P1-9, P2-1 | |
+| P2-4 | Batches, units and code generation endpoints; CSV export | Tashobya | DONE | M | P2-2 | |
+| P2-5 | Recalls and lifecycle state transitions | Tashobya | DONE | M | P2-2 | |
+| P2-6 | Alerts: list, filter, status changes | Tashobya | DONE | M | P2-3 | |
+| P2-7 | Scan history and report-a-product endpoints | Tashobya | DONE | M | P2-3 | Staff scan list is server-side; a shopper's own history is kept on the device (no accounts). Report photo upload not built yet |
+| P2-8 | Sync endpoints: public keys, recall list delta, batch queued offline scans | Tashobya | DONE | M | P2-3 | Full cache returned, not a delta (see decision note) |
+| P2-9 | Validation, rate limiting, OpenAPI at `/docs` | Tashobya | DONE | M | P2-3 | Swagger UI loads from a CDN (needs internet) |
+| P2-10 | Integration tests on a temp DB for every endpoint | Tashobya | DONE | L | P2-3..P2-8 | |
 
 ## Phase 3: Web console (`apps/console`)
 
@@ -132,6 +132,8 @@
 ## Activity log
 
 Newest first. One line per update: `date · who · task ID · what changed`. Anyone changing a status adds a line here.
+
+- 2026-11-06 · Tashobya · P2-1..P2-10, P0-6 · API built in `apps/api` (Fastify + node:sqlite): verify, offline sync, reports, auth, batches/codes/recalls, alerts, scans, overview, admin; OpenAPI at `/docs`. 74 tests pass, 98.6 % coverage; smoke-tested over real HTTP with a seeded file database. Fixed along the way: two queries bound a parameter that had no placeholder. Not yet committed.
 
 - 2026-11-06 · Tashobya · P1-1..P1-11 · Phase 1 built in `packages/core`: types, SQL migration, Ed25519 codes, lookup codes with check digit, five rules, verdict combiner, offline verifier. 83 tests pass, 99 % line coverage; scenarios E1–E6, E8 in `verify.test.ts`, E7 in `offline.test.ts`. Not yet committed or reviewed.
 - 2026-11-06 · Tashobya · P0-1, P0-2 · Started: workspace file and `packages/core` created so Phase 1 could proceed.
