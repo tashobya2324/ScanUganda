@@ -1,0 +1,10 @@
+{
+  "description": "Enables UNBS officers and manufacturers to verify products, monitor counterfeit hotspots, and manage recalls to protect consumers and strengthen supply chain integrity.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
