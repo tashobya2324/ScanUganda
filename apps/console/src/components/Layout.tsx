@@ -12,6 +12,9 @@ const NAV: { to: string; label: string; roles?: Role[] }[] = [
   { to: "/team", label: "Team", roles: ["admin"] },
 ]
 
+/** Where shoppers use the mobile app. Same address under /app/ in development; set VITE_PWA_URL when deployed apart. */
+export const MOBILE_APP_URL: string = import.meta.env.VITE_PWA_URL ?? "/app/"
+
 const ROLE_LABEL: Record<Role, string> = { admin: "Administrator", manufacturer: "Manufacturer", inspector: "Inspector" }
 
 function Mark() {
@@ -55,6 +58,9 @@ export function Layout() {
             ))}
           </nav>
           <div className="hidden border-t border-line-2 p-4 lg:block">
+            <a href={MOBILE_APP_URL} target="_blank" rel="noreferrer" className="mb-3 block text-sm text-accent underline-offset-2 hover:underline">
+              Open the mobile app ↗
+            </a>
             <div className="truncate text-sm font-medium">{user?.name}</div>
             <div className="text-xs text-ink-2">{user && ROLE_LABEL[user.role]}</div>
             <button onClick={signOut} className="mt-2 text-sm text-ink-2 underline underline-offset-2 hover:text-ink">

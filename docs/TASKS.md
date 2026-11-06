@@ -7,7 +7,7 @@
 **Size:** S ≤ 2 h · M ≤ half a day · L ≤ 1 day. Split anything bigger.
 **Deps:** task IDs that must be `DONE` first.
 
-**Current phase: 3 done, 4 next (PWA). Phases 1 and 2 were started before Phase 0 finished, at the team's request. Phase 0 leftovers (P0-1..P0-5, P0-7, P0-8) still open. Console design tokens exist in `apps/console/src/index.css` but are not yet shared with the PWA (P0-4).**
+**Current phase: 4 built, exit gate open (real-phone test, Lighthouse, Luganda review). Phase 5 (USSD/SMS) is next. Phases 1 and 2 were started before Phase 0 finished, at the team's request. Phase 0 leftovers (P0-1..P0-5, P0-7, P0-8) still open. Console design tokens exist in `apps/console/src/index.css` but are not yet shared with the PWA (P0-4).**
 
 ---
 
@@ -15,13 +15,13 @@
 
 | ID | Task | Owner | Status | Size | Deps | Notes |
 |---|---|---|---|---|---|---|
-| P0-1 | Convert repo to pnpm workspaces (`apps/pwa`, `apps/console`, `apps/api`, `packages/core`); move the prototype into `apps/pwa` without breaking it | Tashobya | IN PROGRESS | M | - | Partly done: `pnpm-workspace.yaml` + `packages/core` exist. Prototype still at repo root; moving it to `apps/pwa` and adding `apps/api`/`apps/console` remain. Keep dev server on `$PORT` (see AGENTS.md) |
-| P0-2 | Lint, format, typecheck, test runner (Vitest) scripts at the root | Tashobya | IN PROGRESS | S | P0-1 | Vitest + typecheck scripts exist in `packages/core` only; root scripts and lint remain |
+| P0-1 | Convert repo to pnpm workspaces (`apps/pwa`, `apps/console`, `apps/api`, `packages/core`); move the prototype into `apps/pwa` without breaking it | Tashobya | DONE | M | - | Workspaces in place (`apps/console`, `apps/pwa`, `apps/api`, `packages/core`). The prototype is not a product, so it moved to `docs/mockups/` (reference only) and the root preview now serves the real web system; the mobile app is served at `/app/`. |
+| P0-2 | Lint, format, typecheck, test runner (Vitest) scripts at the root | Tashobya | IN PROGRESS | S | P0-1 | Root `pnpm test` and `pnpm typecheck` run every package. Lint and format checks still missing. |
 | P0-3 | CI workflow: install, typecheck, lint, test, build on every push and PR | - | TODO | S | P0-2 | |
 | P0-4 | Design tokens and base components (button, input, field, sheet, verdict mark, table) per DESIGN.md | - | TODO | M | P0-1 | |
-| P0-5 | Audit current prototype against DESIGN.md; list what to keep or redo | - | TODO | S | P0-4 | Output: note in `docs/decisions/` |
+| P0-5 | Audit current prototype against DESIGN.md; list what to keep or redo | Tashobya | DONE | S | P0-4 | Not needed: the team confirmed the prototype is a flow mockup, not a look to follow. Kept in `docs/mockups/`. |
 | P0-6 | Seed data: 4 manufacturers, ~12 products, batches, regions (districts with coordinates), units | Tashobya | DONE | M | P1-1 | Done in `apps/api/src/seed.ts`: 4 invented manufacturers, 5 products, 6 scenario batches, 9 regions. Real brands deliberately not used (see decision note) |
-| P0-7 | Rewrite root `README.md` (what it is, how to run, where docs are) | - | TODO | S | P0-1 | |
+| P0-7 | Rewrite root `README.md` (what it is, how to run, where docs are) | Tashobya | DONE | S | P0-1 | README and AGENTS.md rewritten for the real structure. |
 | P0-8 | Replace the first commit's AI co-author trailer? (needs a force-push; **team decision**) | - | BLOCKED | S | - | Awaiting decision from repo owner |
 
 ## Phase 1: Domain and verification engine (`packages/core`)
@@ -73,17 +73,17 @@
 
 | ID | Task | Owner | Status | Size | Deps | Notes |
 |---|---|---|---|---|---|---|
-| P4-1 | Typed API client and app state; replace mock timers with real calls | - | TODO | M | P2-3 | |
-| P4-2 | Camera QR scanning (BarcodeDetector + wasm fallback) | - | TODO | M | P4-1 | |
-| P4-3 | Manual 12-digit entry wired to verify | - | TODO | S | P4-1 | |
-| P4-4 | Geolocation permission flow and coarse-location fallback | - | TODO | M | P4-1 | |
-| P4-5 | Verdict screens with real reasons, product facts and journey | - | TODO | M | P4-1 | |
-| P4-6 | Scan history and report-a-product (with photo) | - | TODO | M | P2-7 | |
-| P4-7 | Web manifest, icons, service worker, install prompt | - | TODO | M | P4-1 | |
-| P4-8 | IndexedDB store: cached public keys, recall list, scan queue | - | TODO | M | P4-7, P1-10 | |
-| P4-9 | Offline verdicts and background sync on reconnect | - | TODO | L | P4-8, P2-8 | |
-| P4-10 | Accessibility and low-end-device performance pass | - | TODO | M | P4-5 | |
-| P4-11 | English and Luganda strings | - | TODO | M | P4-5 | Strings in one file per language |
+| P4-1 | Typed API client and app state; replace mock timers with real calls | Tashobya | DONE | M | P2-3 | |
+| P4-2 | Camera QR scanning (BarcodeDetector + wasm fallback) | Tashobya | DONE | M | P4-1 | Native BarcodeDetector, jsQR fallback. Verified with a fake camera showing a real QR; not yet on a real phone or with printed codes. |
+| P4-3 | Manual 12-digit entry wired to verify | Tashobya | DONE | S | P4-1 | |
+| P4-4 | Geolocation permission flow and coarse-location fallback | Tashobya | DONE | M | P4-1 | Optional, 4 s limit, scans proceed without a fix. Settings switch plus browser permission. |
+| P4-5 | Verdict screens with real reasons, product facts and journey | Tashobya | DONE | M | P4-1 | |
+| P4-6 | Scan history and report-a-product (with photo) | Tashobya | DONE | M | P2-7 | History is on-device. Report has no photo upload (API gap) and needs a connection. |
+| P4-7 | Web manifest, icons, service worker, install prompt | Tashobya | DONE | M | P4-1 | Manifest, icons, service worker, install button verified in headless Chromium. Install on a real Android phone not yet tested. |
+| P4-8 | IndexedDB store: cached public keys, recall list, scan queue | Tashobya | DONE | M | P4-7, P1-10 | |
+| P4-9 | Offline verdicts and background sync on reconnect | Tashobya | DONE | L | P4-8, P2-8 | Verified end to end including a recall made while offline. Browser Background Sync API not used: sync runs on start, reconnect, foreground and every minute while scans wait. |
+| P4-10 | Accessibility and low-end-device performance pass | Tashobya | IN PROGRESS | M | P4-5 | Basics built in (labels, live regions, 48 px targets, reduced motion). Lighthouse and low-end-device testing NOT done; needed for the exit gate. |
+| P4-11 | English and Luganda strings | Tashobya | IN PROGRESS | M | P4-5 | Strings in one file per language |
 
 ## Phase 5: USSD and SMS
 
@@ -132,6 +132,13 @@
 ## Activity log
 
 Newest first. One line per update: `date · who · task ID · what changed`. Anyone changing a status adds a line here.
+
+- 2026-11-06 · Tashobya · P0-1, P0-5, P0-7 · Team clarified the original prototype was a flow mockup, not the product. Moved it to `docs/mockups/` (not served). The preview at :8443 now serves the real web system (`apps/console`) and the mobile app at `/app/`; `pnpm dev` starts API + app + web and, on a fresh clone, creates local secrets and sample data. Found and fixed a real offline bug in the PWA service worker (cache lookups missed when the server sends `Vary: Origin`; deep links failed offline). Pushed to GitHub at the team's request.
+
+- 2026-11-06 · Tashobya · P4-1..P4-11 · PWA built in `apps/pwa` (see decision note 2026-11-06-pwa-design-and-scope). 37 tests pass; headless-Chromium run with a fake camera covered online scan, typed code, offline reload, offline scan, recall while offline, and sync on reconnect. P4-10 and P4-11 left open; Phase 4 exit gate NOT met until tested on a real Android phone with Lighthouse ≥ 90. Not committed (AGENTS.md: commit only when asked).
+- 2026-11-06 · Tashobya · - · Preview on :8443 went blank after a workspace install re-linked packages under the running Vite process (`__BUNDLED_DEV__ is not defined`). Restart the root dev server after any `pnpm install`.
+
+- 2026-11-06 · Tashobya · P4-1..P4-11 · Claimed. Building `apps/pwa` as a fresh mobile-first app that reuses the prototype's flow as a reference; the root prototype stays in place (Figma Make needs it at the root), so P0-1's "move the prototype" is replaced by this. See decision note when done.
 
 - 2026-11-06 · Tashobya · P3-1..P3-9 · Console built in `apps/console`: sign-in, overview + trend, batches and products, code generation (CSV + QR print sheet), lifecycle release, recall/lift, live feed, map, alerts inbox, team. 33 UI tests; typecheck and build pass. Walked through in a headless browser as admin and manufacturer: create batch → generate → CSV download → print view → release → recall → lift, no browser errors. Also reworded the impossible-travel message in core ("in under a minute" instead of "within 0 minutes"; 84 core tests). Not yet committed.
 

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react"
 import { Navigate } from "react-router"
+import { MOBILE_APP_URL } from "../components/Layout"
 import { Button, ErrorNote, Field, Input } from "../components/ui"
 import { ApiError } from "../lib/api"
 import { useAuth } from "../lib/auth"
@@ -64,6 +65,10 @@ export function Login() {
           <Button variant="primary" type="submit" disabled={busy || !email || !password} className="w-full">
             {busy ? "Signing in…" : "Sign in"}
           </Button>
+          <p className="text-sm text-ink-2">
+            Checking a product you want to buy?{" "}
+            <a href={MOBILE_APP_URL} className="font-medium text-accent underline underline-offset-2">Open the mobile app</a>
+          </p>
         </form>
       </div>
     </div>

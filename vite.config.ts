@@ -12,9 +12,18 @@ export default defineConfig(({ mode }) => {
   // .figma/make/deploy-preview passes `--mode development` for cached-preview builds.
   const emitSourcemaps = mode === 'development'
 
+  // The web system (the console) lives in apps/console. The preview serves it
+  // from here, so the root keeps the Figma Make plugins below without a copy of the app.
+  const webRoot = path.resolve(__dirname, 'apps/console')
+  const apiTarget = process.env.VITE_API_PROXY ?? 'http://localhost:3000'
+  const mobileTarget = process.env.VITE_PWA_PROXY ?? 'http://localhost:5175'
+
   return {
+    root: webRoot,
     base: process.env.FIGMA_PUBLIC_URL ? `${process.env.FIGMA_PUBLIC_URL}/` : '/',
     build: {
+      outDir: path.resolve(__dirname, 'dist'),
+      emptyOutDir: true,
       sourcemap: emitSourcemaps ? 'inline' : false,
       minify: !emitSourcemaps,
     },
@@ -29,13 +38,19 @@ react(),
     ],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, './src'),
+        '@': path.resolve(webRoot, './src'),
       },
     },
     server: {
       host: process.env.FIGMA_DEV_SERVER_HOST || '0.0.0.0',
       port: parseInt(process.env.PORT || '8443'),
       strictPort: true,
+      proxy: {
+        // The API, and the mobile app (served by its own dev server under /app/).
+        '/v1': apiTarget,
+        '/health': apiTarget,
+        '/app': { target: mobileTarget, ws: true },
+      },
       watch: {
         ignored: [
           '**/.figma/**',

@@ -1,0 +1,87 @@
+@import "tailwindcss";
+@import "@fontsource-variable/instrument-sans";
+@import "@fontsource-variable/jetbrains-mono";
+
+/* Design tokens: see docs/DESIGN.md. Same values as the console. */
+@theme {
+  --font-sans: "Instrument Sans Variable", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  --color-bg: #f7f5f0;
+  --color-surface: #ffffff;
+  --color-ink: #16181a;
+  --color-ink-2: #5b6168;
+  --color-line: #e4e0d6;
+  --color-line-2: #efece4;
+  --color-accent: #0f5c47;
+  --color-accent-ink: #ffffff;
+  --color-accent-soft: #e3eee9;
+
+  --color-genuine: #117a4a;
+  --color-check: #9a5b00;
+  --color-stop: #b3261e;
+  --color-pending: #3f4448;
+  --color-check-soft: #f7ecd9;
+  --color-stop-soft: #f8e4e2;
+
+  --radius-control: 10px;
+  --radius-panel: 16px;
+  --shadow-float: 0 8px 30px -8px rgb(22 24 26 / 0.18), 0 0 0 1px rgb(22 24 26 / 0.05);
+}
+
+@layer base {
+  html {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    min-height: 100dvh;
+    overscroll-behavior-y: contain;
+  }
+  h1, h2, h3 {
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  button { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+  .num { font-variant-numeric: tabular-nums; }
+}
+
+/* Camera frame: dim everything outside the square. */
+.viewfinder {
+  box-shadow: 0 0 0 100vmax rgb(0 0 0 / 0.55);
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pop {
+  from { opacity: 0; transform: scale(0.7); }
+  to { opacity: 1; transform: none; }
+}
+.rise { animation: rise 260ms ease-out both; }
+.pop { animation: pop 380ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+
+@keyframes sweep {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(calc(100% - 2px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

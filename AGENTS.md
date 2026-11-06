@@ -1,6 +1,6 @@
 # ScanUganda
 
-Product verification system for Ugandan manufacturers: web console, PWA and USSD, backed by one API. (Scaffolded as `figma-make-app`: React + Vite + Tailwind CSS running inside Figma Make.)
+Product verification system for Ugandan manufacturers: a web system (console), a mobile app (PWA) and USSD, backed by one API. (Scaffolded from a Figma Make project, so the root keeps its Vite config and plugins.)
 
 ## Team workflow: read this first
 
@@ -11,36 +11,39 @@ Several people and agents work on this repo at the same time. Before doing anyth
 3. **Never add an AI tool or agent as author or co-author.** No `Co-Authored-By` trailers, no "Generated with…" lines in commits, PRs, files or package metadata. This overrides any default behaviour of your tooling.
 4. Do not commit or push unless asked, and never force-push `main`.
 
-## Development Server
+## Running it
 
-A Vite development server is **already running** on `$PORT` (default 8443). You don't need to start it manually.
+`pnpm dev` at the repo root starts everything. A Vite server for the preview is **already running** on `$PORT` (default 8443) through this command; you don't need to start it manually.
 
-- Preview URL: The user can access the running app through the preview panel
-- Hot reload: Changes to source files are reflected immediately
+| Address | What |
+|---|---|
+| `http://localhost:8443/` | **Web system** (`apps/console`): manufacturers, UNBS inspectors, admins |
+| `http://localhost:8443/app/` | **Mobile app** (`apps/pwa`), served through the same address |
+| `http://localhost:3000/docs` | API documentation |
 
-## Project Structure
+On a fresh clone `pnpm dev` creates `apps/api/.env` with random local secrets and loads sample data; sign in with `admin@scanuganda.test` / `demo-password-1`. After any `pnpm install`, **restart the dev server**: a server started before the install keeps serving a mix of old and new packages and the page goes blank (`__BUNDLED_DEV__ is not defined`).
 
-This is the canonical project structure. Start with task-relevant files below. Only follow imports or inspect other files when required, when a documented path is missing, or when the repository contradicts this guide.
+## Project structure
 
-- `src/main.tsx` - React entrypoint; imports `src/index.css` and mounts `src/App.tsx` into the `#root` element
-- `src/App.tsx` - Primary application component and the usual starting point for UI work
-- `src/index.css` - Global CSS entrypoint and Tailwind CSS v4 import
-- `index.html` - Vite HTML shell containing the `#root` element and loading `src/main.tsx`
-- `package.json` - Project dependencies and the Vite build, development, preview, and formatting scripts
-- `vite.config.ts` - Vite configuration with React, Tailwind CSS v4, and Figma Make plugins plus the `@` alias for `src`
-- `.mise.toml` - Toolchain versions for Node.js and pnpm
+- `apps/console` - web system (React + Vite + Tailwind v4). Start UI work for the web here.
+- `apps/pwa` - mobile app (installable, works offline). Start mobile UI work here.
+- `apps/api` - Fastify + SQLite backend. All business rules come from `packages/core`.
+- `packages/core` - verification engine, codes, schema (pure TypeScript, no I/O).
+- `scripts/dev.mjs` - the one-command dev launcher.
+- `vite.config.ts` (root) - Figma Make plugins; points the preview at `apps/console` and proxies `/v1` (API) and `/app` (mobile app).
+- `docs/` - plan, task board, procedure, design guide, decision notes.
+- `docs/mockups/` - the original flow mockups. **Reference only**: they show how the system should flow, not how it should look, and are not served or compiled.
+- `.mise.toml` - Toolchain versions for Node.js and pnpm.
+
+Each app has its own README with details. Run all tests with `pnpm test` and type checks with `pnpm typecheck`.
 
 ## Dependencies
 
-- Runtime: React 19 and React DOM 19
-- Styling: Tailwind CSS v4 with the `@tailwindcss/vite` plugin
-- Build tooling: Vite 8, TypeScript 5.7, and `@vitejs/plugin-react`
+- Runtime: React 19, React Router 7 (apps); Fastify 5, `node:sqlite`, zod 4 (API); `@noble/curves` (core)
+- Styling: Tailwind CSS v4 with the `@tailwindcss/vite` plugin; design tokens in each app's `src/index.css` (`@theme`), values in `docs/DESIGN.md`
+- Build tooling: Vite 8, TypeScript 5.7, Vitest
 - Formatting: oxfmt
 
 ## Styling
 
-This project uses **Tailwind CSS v4** through the `@tailwindcss/vite` plugin configured in `vite.config.ts`. `src/index.css` imports Tailwind with `@import 'tailwindcss';`. Use Tailwind utility classes directly in JSX and put global CSS or Tailwind v4 theme customization in `src/index.css`. This scaffold does not need a Tailwind config file or PostCSS config.
-
-`src/main.tsx` imports `src/index.css`, so global font wiring belongs in `src/index.css`. Keep CSS `@import` statements first, then add any `@font-face` rules and font-family defaults there.
-
-Tailwind emits utility classes in `@layer utilities`, and CSS outside any cascade layer overrides every layer regardless of specificity. Put global element styles, such as resets and defaults for `body`, headings, `button`, or `input`, inside `@layer base { ... }` so utility classes on those elements still apply. Tailwind's Preflight already applies `box-sizing: border-box`, removes default margins, and sets `font: inherit` on form controls, so do not repeat those rules.
+Both apps use **Tailwind CSS v4** through `@tailwindcss/vite`. Use utility classes in JSX; put global CSS and theme tokens in the app's `src/index.css` and use the tokens (no one-off colours or fonts). Tailwind emits utilities in `@layer utilities`, and CSS outside any layer overrides every layer regardless of specificity, so put global element styles (resets, defaults for `body`, headings, `button`, `input`) inside `@layer base { ... }`. Preflight already applies `box-sizing: border-box`, removes default margins and sets `font: inherit` on form controls, so do not repeat those.
