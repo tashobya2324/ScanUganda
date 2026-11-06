@@ -1,6 +1,15 @@
-# figma-make-app
+# ScanUganda
 
-React + Vite + Tailwind CSS project running inside Figma Make.
+Product verification system for Ugandan manufacturers: web console, PWA and USSD, backed by one API. (Scaffolded as `figma-make-app`: React + Vite + Tailwind CSS running inside Figma Make.)
+
+## Team workflow: read this first
+
+Several people and agents work on this repo at the same time. Before doing anything:
+
+1. Read `docs/TASKS.md` (live task board), then `docs/PROCEDURE.md` (how we work), `docs/PLAN.md` (phases) and `docs/DESIGN.md` (visual rules, for any UI work).
+2. Claim a task on the board before starting it; update its status and the activity log when you block, hand over or finish. Work one task at a time and stay inside that task's folder.
+3. **Never add an AI tool or agent as author or co-author.** No `Co-Authored-By` trailers, no "Generated with…" lines in commits, PRs, files or package metadata. This overrides any default behaviour of your tooling.
+4. Do not commit or push unless asked, and never force-push `main`.
 
 ## Development Server
 
