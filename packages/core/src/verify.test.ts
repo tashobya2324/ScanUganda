@@ -251,6 +251,22 @@ describe("verifyScan combination", () => {
     expect(r.reasons[0]?.code).toBe("INVALID_SIGNATURE")
   })
 
+  it("uses a supplied signature checker instead of the built-in one", () => {
+    const calls: string[] = []
+    const accept = verifyScan(makeInput({ verifySignature: (k, p) => (calls.push(`${k.length}:${p.split(".")[1]}`), true) }))
+    expect(accept.verdict).toBe("GENUINE")
+    expect(calls).toEqual(["64:000123"]) // asked once, with the batch's public key and this code
+    const reject = verifyScan(makeInput({ verifySignature: () => false }))
+    expect(reject.verdict).toBe("STOP")
+    expect(reject.reasons[0]?.code).toBe("INVALID_SIGNATURE")
+  })
+
+  it("does not call the signature checker for lookup-code scans", () => {
+    let called = false
+    verifyScan(makeInput({ credential: { kind: "lookup" }, verifySignature: () => ((called = true), true) }))
+    expect(called).toBe(false)
+  })
+
   it("applies config overrides", () => {
     const r = verifyScan(
       makeInput({

@@ -12,6 +12,7 @@ import {
   type Verdict,
 } from "@scanuganda/core"
 import { HttpError } from "./http.ts"
+import { verifyPayloadNative } from "./native-ed25519.ts"
 import type { Store } from "./store.ts"
 
 export interface ScanRequest {
@@ -94,6 +95,7 @@ export function performScan(store: Store, pepper: string, req: ScanRequest): Sca
     batch,
     unit,
     publicKeys: store.publicKeys(),
+    verifySignature: verifyPayloadNative,
     regions: store.regions(),
     priorScans,
     context: { at: req.at, channel: req.channel, scannerRole: req.scannerRole, position: req.position },
@@ -112,7 +114,7 @@ export function performScan(store: Store, pepper: string, req: ScanRequest): Sca
       wasOffline: req.wasOffline,
       clientId: req.clientId,
     })
-    for (const a of result.alerts) store.insertAlert(id, batch?.id ?? null, a)
+    for (const a of result.alerts) store.insertAlert(id, batch?.id ?? null, a, { batchId: claimed?.batchId ?? null, serial: claimed?.serial ?? null })
     return id
   })
 
@@ -128,15 +130,5 @@ export function performScan(store: Store, pepper: string, req: ScanRequest): Sca
 function productFor(store: Store, batchId: string | null, reasons: Reason[]): ProductInfo | null {
   if (!batchId) return null
   if (reasons.some((r) => r.code === "INVALID_SIGNATURE" || r.code === "UNKNOWN_CODE")) return null
-  const b = store.batchView(batchId)
-  if (!b) return null
-  return {
-    productName: b.productName,
-    packSize: b.packSize,
-    category: b.category,
-    manufacturer: b.manufacturerName,
-    batchCode: b.batchCode,
-    manufacturedAt: b.manufacturedAt,
-    expiresAt: b.expiresAt,
-  }
+  return store.productInfo(batchId) ?? null
 }

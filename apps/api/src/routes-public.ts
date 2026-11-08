@@ -5,6 +5,7 @@ import {
   ChannelSchema, PositionSchema, RegionSchema, ScanOutcomeSchema, ScannerRoleSchema, UserViewSchema,
 } from "./schemas.ts"
 import type { Config } from "./config.ts"
+import { SlidingWindow } from "./limiter.ts"
 import type { Store } from "./store.ts"
 import { performScan, type ScanRequest } from "./verification.ts"
 
@@ -25,6 +26,8 @@ const ScanInput = z
 let dummyHash: Promise<string> | undefined
 
 export function publicRoutes(route: Route, store: Store, config: Config): void {
+  /** 10 failed sign-ins per address and account per 15 minutes. In memory: per server process. */
+  const loginFailures = new SlidingWindow(10, 15 * 60_000)
   route({
     method: "GET", url: "/health", tag: "System", summary: "Liveness check", auth: "public",
     response: z.object({ status: z.literal("ok"), time: z.number() }),
@@ -40,7 +43,7 @@ export function publicRoutes(route: Route, store: Store, config: Config): void {
   /* ---------- verify ---------- */
 
   route({
-    method: "POST", url: "/v1/verify", tag: "Verification", auth: "optional", rateLimit: 60,
+    method: "POST", url: "/v1/verify", tag: "Verification", auth: "optional", rateLimit: config.verifyRateLimit,
     summary: "Check a product by its QR payload or 12-digit code",
     body: ScanInput.and(
       z.object({
@@ -150,16 +153,23 @@ export function publicRoutes(route: Route, store: Store, config: Config): void {
   /* ---------- auth ---------- */
 
   route({
-    method: "POST", url: "/v1/auth/login", tag: "Auth", auth: "public", rateLimit: 10,
+    method: "POST", url: "/v1/auth/login", tag: "Auth", auth: "public", rateLimit: config.loginRateLimit,
     summary: "Sign in with email and password",
     body: z.object({ email: z.string().email().max(200), password: z.string().min(1).max(200) }),
     response: z.object({ token: z.string(), expiresAt: z.number(), user: UserViewSchema }),
-    handler: async ({ body }) => {
+    handler: async ({ body, req }) => {
+      // Lock out guessing against one account from one address (not the account for everyone:
+      // an attacker elsewhere cannot lock a real user out). Counts failures only.
+      const attemptKey = `${req.ip}|${body.email.toLowerCase()}`
+      if (loginFailures.blocked(attemptKey)) throw new HttpError(429, "RATE_LIMITED", "Too many failed sign-ins. Wait 15 minutes and try again.")
       const u = store.userByEmail(body.email)
       // Always hash-compare, so a wrong email takes as long as a wrong password.
       dummyHash ??= hashPassword("not-a-real-password")
       const ok = await verifyPassword(body.password, u?.password_hash ?? (await dummyHash))
-      if (!u || !ok) throw new HttpError(401, "BAD_CREDENTIALS", "Email or password is incorrect")
+      if (!u || !ok) {
+        loginFailures.record(attemptKey)
+        throw new HttpError(401, "BAD_CREDENTIALS", "Email or password is incorrect")
+      }
       return {
         token: signToken(config.tokenSecret, u.id, TOKEN_TTL_MS),
         expiresAt: Date.now() + TOKEN_TTL_MS,

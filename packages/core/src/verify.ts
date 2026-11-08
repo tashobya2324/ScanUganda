@@ -39,6 +39,8 @@ export interface VerifyInput {
   priorScans: PriorScan[]
   context: ScanContext
   config?: Partial<RuleConfig>
+  /** Optional faster signature check (e.g. Node's native crypto on the server). Must agree with `verifyPayload`. */
+  verifySignature?: (publicKey: string, payload: string) => boolean
 }
 
 const SEVERITY: Record<RuleResult["outcome"], number> = { stop: 0, check: 1, skip: 2, pass: 3 }
@@ -86,6 +88,7 @@ export function verifyScan(input: VerifyInput): VerifyResult {
       credential.payload,
       { batchId: batch.id, serial: unit.serial },
       publicKeys[batch.keyId],
+      input.verifySignature,
     )
     checks.push(sig)
     // A forged code says nothing reliable about the batch, so stop here.

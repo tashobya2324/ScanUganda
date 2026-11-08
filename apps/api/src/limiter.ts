@@ -15,18 +15,31 @@ export class SlidingWindow {
     private windowMs: number,
   ) {}
 
+  private idOf(key: string): string {
+    return createHash("sha256").update(key).digest("base64url").slice(0, 22)
+  }
+
+  private recent(id: string, now: number): number[] {
+    return (this.hits.get(id) ?? []).filter((t) => now - t < this.windowMs)
+  }
+
   /** Records an attempt. Returns false when this key is over the limit. */
   allow(key: string, now = Date.now()): boolean {
-    const id = createHash("sha256").update(key).digest("base64url").slice(0, 22)
-    const recent = (this.hits.get(id) ?? []).filter((t) => now - t < this.windowMs)
-    if (recent.length >= this.max) {
-      this.hits.set(id, recent)
-      return false
-    }
-    recent.push(now)
-    this.hits.set(id, recent)
-    if (this.hits.size > 10_000) this.sweep(now)
+    if (this.blocked(key, now)) return false
+    this.record(key, now)
     return true
+  }
+
+  /** True when this key has already used up its attempts (does not record anything). */
+  blocked(key: string, now = Date.now()): boolean {
+    return this.recent(this.idOf(key), now).length >= this.max
+  }
+
+  /** Records one attempt without checking. Use with `blocked` to count only failures. */
+  record(key: string, now = Date.now()): void {
+    const id = this.idOf(key)
+    this.hits.set(id, [...this.recent(id, now), now])
+    if (this.hits.size > 10_000) this.sweep(now)
   }
 
   private sweep(now: number) {

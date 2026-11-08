@@ -19,13 +19,24 @@ export interface AppDeps {
   store: Store
   keys: KeyStore
   config: Config
-  logger?: boolean
+  /** `true` logs to stdout; an object lets tests capture the log. Query strings are never logged (they can carry the channel key). */
+  logger?: boolean | { stream: NodeJS.WritableStream }
   /** How SMS replies are delivered. Defaults to Africa's Talking when configured, otherwise nothing is sent. */
   sms?: SmsSender
 }
 
 export async function buildApp({ store, keys, config, logger = false, sms }: AppDeps) {
-  const app = Fastify({ logger, bodyLimit: 1_000_000 })
+  const app = Fastify({
+    bodyLimit: 1_000_000,
+    trustProxy: config.trustProxy,
+    logger: logger
+      ? {
+          ...(typeof logger === "object" ? { stream: logger.stream } : {}),
+          // Log what happened, not who or with what secret: path only, no query string, no headers.
+          serializers: { req: (req) => ({ method: req.method, url: req.url?.split("?")[0] }) },
+        }
+      : false,
+  })
 
   await app.register(formbody) // aggregators post USSD and SMS callbacks as forms
   await app.register(cors, { origin: config.corsOrigins.length ? config.corsOrigins : false })
@@ -39,6 +50,11 @@ export async function buildApp({ store, keys, config, logger = false, sms }: App
   app.addHook("onSend", async (req, reply) => {
     reply.header("X-Content-Type-Options", "nosniff")
     reply.header("Referrer-Policy", "no-referrer")
+    reply.header("Cross-Origin-Resource-Policy", "same-site")
+    // The API only ever returns data, so nothing it sends may run or be framed. The docs page loads Swagger UI from a CDN.
+    if (!req.url.startsWith("/docs")) reply.header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+    // Only meaningful (and only safe to send) when the request came in over https, e.g. through a proxy.
+    if (req.headers["x-forwarded-proto"] === "https") reply.header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     // Anything fetched with a token (staff data, freshly generated codes) must not be cached.
     if (req.headers.authorization) reply.header("Cache-Control", "no-store")
   })

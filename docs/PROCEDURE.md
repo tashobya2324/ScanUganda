@@ -21,6 +21,8 @@ cd ScanUganda
 pnpm install
 pnpm dev          # starts all apps (after Phase 0 task P0-1)
 pnpm test         # unit and integration tests
+pnpm e2e          # end-to-end scenarios in a real browser (builds its own throwaway stack)
+pnpm load         # load check on the verify endpoint (50 req/s target)
 pnpm typecheck && pnpm lint
 ```
 

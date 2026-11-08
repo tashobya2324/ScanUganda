@@ -15,6 +15,9 @@ export const testConfig = (over: Partial<Config> = {}): Config => ({
   lookupPepper: "p".repeat(40),
   corsOrigins: [],
   rateLimitMax: 100_000,
+  verifyRateLimit: 100_000,
+  loginRateLimit: 100_000,
+  trustProxy: false,
   validateResponses: true,
   ...over,
 })

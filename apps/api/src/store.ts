@@ -91,15 +91,32 @@ export class Store {
 
   /* ----- reference data ----- */
 
+  /**
+   * Reference data that every check needs but that almost never changes (districts, public
+   * keys) is kept for a few seconds instead of re-read on each request. Our own writes drop
+   * it at once; another server process's writes show up within the TTL.
+   */
+  private memo = new Map<string, { at: number; value: unknown }>()
+  private cached<T>(key: string, load: () => T, ttlMs = 5000): T {
+    const hit = this.memo.get(key)
+    if (hit && Date.now() - hit.at < ttlMs) return hit.value as T
+    const value = load()
+    this.memo.set(key, { at: Date.now(), value })
+    return value
+  }
+
   regions(): Region[] {
-    return all<{ id: string; name: string; lat: number; lng: number; radius_km: number }>(
-      this.db,
-      "SELECT * FROM regions ORDER BY name",
-    ).map((r) => ({ id: r.id, name: r.name, center: { lat: r.lat, lng: r.lng }, radiusKm: r.radius_km }))
+    return this.cached("regions", () =>
+      all<{ id: string; name: string; lat: number; lng: number; radius_km: number }>(
+        this.db,
+        "SELECT * FROM regions ORDER BY name",
+      ).map((r) => ({ id: r.id, name: r.name, center: { lat: r.lat, lng: r.lng }, radiusKm: r.radius_km })),
+    )
   }
 
   insertRegion(r: Region): void {
     run(this.db, "INSERT INTO regions VALUES (?,?,?,?,?)", r.id, r.name, r.center.lat, r.center.lng, r.radiusKm)
+    this.memo.delete("regions")
   }
 
   /* ----- manufacturers, keys, users ----- */
@@ -118,6 +135,7 @@ export class Store {
 
   insertKey(id: string, manufacturerId: string, publicKey: string): void {
     run(this.db, "INSERT INTO signing_keys VALUES (?,?,?,?,NULL)", id, manufacturerId, publicKey, Date.now())
+    this.memo.delete("publicKeys")
   }
   activeKeyId(manufacturerId: string): string | undefined {
     return get<{ id: string }>(
@@ -128,12 +146,33 @@ export class Store {
   }
   /** keyId → public key, including retired keys (old codes stay valid). */
   publicKeys(): Record<string, string> {
-    return Object.fromEntries(
-      all<{ id: string; public_key: string }>(this.db, "SELECT id, public_key FROM signing_keys").map((k) => [
-        k.id,
-        k.public_key,
-      ]),
+    return this.cached("publicKeys", () =>
+      Object.fromEntries(
+        all<{ id: string; public_key: string }>(this.db, "SELECT id, public_key FROM signing_keys").map((k) => [
+          k.id,
+          k.public_key,
+        ]),
+      ),
     )
+  }
+
+  /** What a shopper is shown about a product. Cheaper than `batchView`: no unit count. */
+  productInfo(batchId: string) {
+    const r = get<{ batch_code: string; manufactured_at: number; expires_at: number; product_name: string; pack_size: string; category: string; manufacturer_name: string }>(
+      this.db,
+      `SELECT b.batch_code, b.manufactured_at, b.expires_at, p.name AS product_name, p.pack_size, p.category, m.name AS manufacturer_name
+         FROM batches b JOIN products p ON p.id = b.product_id JOIN manufacturers m ON m.id = b.manufacturer_id WHERE b.id = ?`,
+      batchId,
+    )
+    return r && {
+      productName: r.product_name,
+      packSize: r.pack_size,
+      category: r.category,
+      manufacturer: r.manufacturer_name,
+      batchCode: r.batch_code,
+      manufacturedAt: r.manufactured_at,
+      expiresAt: r.expires_at,
+    }
   }
 
   insertUser(u: { email: string; passwordHash: string; name: string; role: Role; manufacturerId: string | null }): string {
@@ -304,9 +343,32 @@ export class Store {
     return id
   }
 
-  insertAlert(scanId: string, batchId: string | null, a: AlertDraft): void {
+  /**
+   * Raises an alert, unless the same kind is already open for the same unit within the
+   * last hour. Repeated attempts on one forged or cloned code are folded into the alert
+   * already waiting, so an attacker cannot flood the inbox. Returns whether one was created.
+   */
+  insertAlert(scanId: string, batchId: string | null, a: AlertDraft, unit?: { batchId: string | null; serial: string | null }): boolean {
     const now = Date.now()
+    if (unit) {
+      const dup = get(
+        this.db,
+        `SELECT 1 AS x FROM alerts a JOIN scans s ON s.id = a.scan_id
+          WHERE a.type = ? AND a.status <> 'resolved' AND a.created_at > ? AND s.batch_id IS ? AND s.serial IS ?`,
+        a.type, now - 3_600_000, unit.batchId, unit.serial,
+      )
+      if (dup) return false
+    }
     run(this.db, "INSERT INTO alerts VALUES (?,?,?,?,?,'open',?,?,?,NULL)", uuid(), scanId, batchId, a.type, a.priority, a.message, now, now)
+    return true
+  }
+
+  /** Stops signing new codes with a manufacturer's current key(s). Old codes keep verifying: the public key stays. */
+  retireKeys(manufacturerId: string): void {
+    run(this.db, "UPDATE signing_keys SET retired_at = ? WHERE manufacturer_id = ? AND retired_at IS NULL", Date.now(), manufacturerId)
+  }
+  manufacturerExists(id: string): boolean {
+    return get(this.db, "SELECT 1 AS x FROM manufacturers WHERE id = ?", id) !== undefined
   }
 
   private alertSelect = `SELECT a.*, b.batch_code, p.name AS product_name, b.manufacturer_id AS m_id

@@ -7,6 +7,12 @@ export interface Config {
   corsOrigins: string[]
   /** Requests per minute per IP on the global limiter. */
   rateLimitMax: number
+  /** Verify requests per minute per IP (the public check endpoint). Raised only for load tests. */
+  verifyRateLimit: number
+  /** Sign-in requests per minute per IP. (Separately, 10 failures per address and account lock that pair for 15 minutes.) */
+  loginRateLimit: number
+  /** Behind a reverse proxy: believe its X-Forwarded-For for the client address, so limits and lockouts apply per visitor, not per proxy. Leave off when the API is exposed directly (the header could then be forged). */
+  trustProxy: boolean
   /** In tests, every response is checked against its declared schema. */
   validateResponses: boolean
   /** Shared secret the aggregator sends with USSD/SMS callbacks. Unset means open (development only). */
@@ -40,6 +46,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     lookupPepper,
     corsOrigins: (env.CORS_ORIGINS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
     rateLimitMax: Number(env.RATE_LIMIT_MAX ?? 120),
+    verifyRateLimit: Number(env.VERIFY_RATE_LIMIT ?? 60),
+    loginRateLimit: Number(env.LOGIN_RATE_LIMIT ?? 10),
+    trustProxy: env.TRUST_PROXY === "true",
     validateResponses: false,
     channelSecret: optionalSecret(env.CHANNEL_SECRET),
     africasTalking:

@@ -25,6 +25,8 @@ export function checkSignature(
   payload: string,
   expected: { batchId: string; serial: string },
   publicKey: string | undefined,
+  /** How to check the signature. Defaults to the portable implementation; a server may pass a faster native one. */
+  verify: (publicKey: string, payload: string) => boolean = verifyPayload,
 ): RuleResult {
   const rule = "signature"
   const parsed = parsePayload(payload)
@@ -33,7 +35,7 @@ export function checkSignature(
     publicKey !== undefined &&
     parsed.batchId === expected.batchId &&
     parsed.serial === expected.serial &&
-    verifyPayload(publicKey, payload)
+    verify(publicKey, payload)
   if (ok) return pass(rule)
   return {
     rule,

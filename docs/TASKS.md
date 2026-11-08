@@ -7,7 +7,9 @@
 **Size:** S ≤ 2 h · M ≤ half a day · L ≤ 1 day. Split anything bigger.
 **Deps:** task IDs that must be `DONE` first.
 
-**Current phase: 5 built except the aggregator sandbox run (P5-4, needs a team member's account). Phase 4 exit gate also still open (real-phone test, Lighthouse, Luganda review). Phase 6 (integration and hardening) is next. Phases 1 and 2 were started before Phase 0 finished, at the team's request. Phase 0 leftovers (P0-1..P0-5, P0-7, P0-8) still open. Console design tokens exist in `apps/console/src/index.css` but are not yet shared with the PWA (P0-4).**
+**Everything that needs the team is listed in [TEAM-INPUT.md](TEAM-INPUT.md).**
+
+**Current phase: 6 done except what needs people (P6-4 real phones; see TEAM-INPUT). Phase 7 (delivery) is next, and its deployment and demo tasks need the team. Phase 5 built except the aggregator sandbox run (P5-4, needs a team member's account). Phase 4 exit gate also still open (real-phone test, Lighthouse, Luganda review). Phase 6 (integration and hardening) is next. Phases 1 and 2 were started before Phase 0 finished, at the team's request. Phase 0 leftovers (P0-1..P0-5, P0-7, P0-8) still open. Console design tokens exist in `apps/console/src/index.css` but are not yet shared with the PWA (P0-4).**
 
 ---
 
@@ -82,7 +84,7 @@
 | P4-7 | Web manifest, icons, service worker, install prompt | Tashobya | DONE | M | P4-1 | Manifest, icons, service worker, install button verified in headless Chromium. Install on a real Android phone not yet tested. |
 | P4-8 | IndexedDB store: cached public keys, recall list, scan queue | Tashobya | DONE | M | P4-7, P1-10 | |
 | P4-9 | Offline verdicts and background sync on reconnect | Tashobya | DONE | L | P4-8, P2-8 | Verified end to end including a recall made while offline. Browser Background Sync API not used: sync runs on start, reconnect, foreground and every minute while scans wait. |
-| P4-10 | Accessibility and low-end-device performance pass | Tashobya | IN PROGRESS | M | P4-5 | Basics built in (labels, live regions, 48 px targets, reduced motion). Lighthouse and low-end-device testing NOT done; needed for the exit gate. |
+| P4-10 | Accessibility and low-end-device performance pass | Tashobya | DONE | M | P4-5 | Lighthouse 12 (mobile): Accessibility 100, SEO 100, Best Practices 96, Performance 89. Real low-end phone test still needed (TEAM-INPUT #1). |
 | P4-11 | English and Luganda strings | Tashobya | IN PROGRESS | M | P4-5 | Strings in one file per language |
 
 ## Phase 5: USSD and SMS
@@ -100,10 +102,10 @@
 
 | ID | Task | Owner | Status | Size | Deps | Notes |
 |---|---|---|---|---|---|---|
-| P6-1 | End-to-end tests for PLAN §6 scenarios E1–E8 (Playwright) | - | TODO | L | P4-9, P5-1, P3-7 | |
-| P6-2 | Security pass (validation, rate limits, secrets, logs without PII, key rotation note) | - | TODO | M | P2-9 | |
-| P6-3 | Load check on `/verify` | - | TODO | S | P2-10 | |
-| P6-4 | Real-phone test round; bug triage with severity | - | TODO | M | P4-10 | |
+| P6-1 | End-to-end tests for PLAN §6 scenarios E1–E8 (Playwright) | Tashobya | DONE | L | P4-9, P5-1, P3-7 | `pnpm e2e`: 32 checks, all eight scenarios, real browser + fake camera, throwaway stack. Console is not in it (exercised by hand and by unit tests). |
+| P6-2 | Security pass (validation, rate limits, secrets, logs without PII, key rotation note) | Tashobya | DONE | M | P2-9 | See `docs/SECURITY.md`: log redaction, sign-in lockout, alert de-duplication, key rotation, headers, proxy setting, dependency upgrades (audit clean). Audit log and public-key revocation left to the team (TEAM-INPUT #15). |
+| P6-3 | Load check on `/verify` | Tashobya | DONE | S | P2-10 | `pnpm load`: QR check 13.9 → 2.5 ms; 50 req/s target met with ~3-5x margin. Numbers are noisy on this low-memory laptop: re-run on a healthy machine (TEAM-INPUT #14). |
+| P6-4 | Real-phone test round; bug triage with severity | - | BLOCKED | M | P4-10 | Needs real phones and people: see `docs/TEAM-INPUT.md` #1 and #2. |
 
 ## Phase 7: Delivery
 
@@ -132,6 +134,10 @@
 ## Activity log
 
 Newest first. One line per update: `date · who · task ID · what changed`. Anyone changing a status adds a line here.
+
+- 2026-11-08 · Tashobya · P6-1,2,3, P4-10 · Phase 6 done except P6-4. `pnpm e2e` (32/32), `pnpm load`, security pass (`docs/SECURITY.md`), Lighthouse. API 152 tests, core 86, console 49, PWA 37. Real findings fixed: signature checking was 80 % of QR-check cost (now native on the server); verify counted a batch's units on every scan; one forged code flooded alerts; sign-in could be guessed; no key rotation; request logs held the channel key. Dev-tool vulnerabilities cleared (Vite 8.3.6, Vitest 4.1.12). Not committed. Added TEAM-INPUT #13-16 (incl. Ethan co-author request).
+
+- 2026-11-08 · Tashobya · P6-1..P6-4 · Phase 5 committed (e7fb946, not pushed). Phase 6 started: doing everything possible alone first (security pass, end-to-end scenarios, load check, accessibility audit); P6-4 BLOCKED on real phones. Created `docs/TEAM-INPUT.md`, the register of everything that needs the team.
 
 - 2026-11-08 · Tashobya · P5-1,2,3,5,6 · USSD menu, SMS check, simulator page and go-live write-up built. API 120 tests (98.7 % coverage), console 49. Checked through the real server with a form-encoded callback exactly as an aggregator sends it, and in a browser through the simulator. NOT done: aggregator sandbox run (P5-4) and any test from a physical phone. Found and fixed: an emoji became two "?" in SMS text (regex needed the `u` flag). Not committed.
 

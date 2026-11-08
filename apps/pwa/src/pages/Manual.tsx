@@ -1,4 +1,4 @@
-import { formatLookupCode, isValidLookupCode, normalizeLookupCode } from "@scanuganda/core"
+import { formatLookupCode, isValidLookupCode, normalizeLookupCode } from "@scanuganda/core/light"
 import { useState, type FormEvent } from "react"
 import { useNavigate } from "react-router"
 import { Banner, Button, Page, TopBar } from "../components/ui"

@@ -1,4 +1,4 @@
-import { parsePayload } from "@scanuganda/core"
+import { parsePayload } from "@scanuganda/core/light"
 import { useEffect, useRef, useState } from "react"
 
 export type CameraState = "starting" | "running" | "denied" | "insecure" | "unsupported"

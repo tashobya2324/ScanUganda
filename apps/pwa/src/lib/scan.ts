@@ -1,4 +1,5 @@
-import { isValidLookupCode, normalizeLookupCode, parsePayload, verifyOffline, type Reason } from "@scanuganda/core"
+import { isValidLookupCode, normalizeLookupCode, parsePayload } from "@scanuganda/core/light"
+import type { Reason } from "@scanuganda/core"
 import { ApiError, api } from "./api"
 import { notifyChange } from "./bus"
 import { db, type ScanRecord } from "./db"
@@ -64,6 +65,8 @@ export async function checkScan(input: { payload?: string; code?: string }, now 
   let record: ScanRecord
   if (payload !== undefined) {
     const cache = await db.getCache()
+    // The signature library is only needed here, offline: load it then, not at start-up.
+    const { verifyOffline } = await import("@scanuganda/core")
     const r = cache ? verifyOffline(payload, cache, now) : null
     record = { ...base, status: "offline", verdict: r?.verdict ?? "CHECK", reasons: r?.reasons ?? [NO_LIST], product: null }
   } else {

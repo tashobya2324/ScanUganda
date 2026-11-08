@@ -64,6 +64,22 @@ export function staffRoutes(route: Route, store: Store, keys: KeyStore, config: 
   })
 
   route({
+    method: "POST", url: "/v1/manufacturers/:id/rotate-key", tag: "Admin", auth: [...ADMIN], status: 201,
+    summary: "Issue a new signing key. New batches use it; codes already printed keep verifying.",
+    params: IdParam,
+    response: z.object({ keyId: z.string() }),
+    handler: ({ params }) =>
+      store.tx(() => {
+        if (!store.manufacturerExists(params.id)) throw notFound("Manufacturer")
+        const keyId = `k_${shortId()}`
+        const publicKey = keys.create(keyId) // file first: if this fails, nothing was retired
+        store.retireKeys(params.id)
+        store.insertKey(keyId, params.id, publicKey)
+        return { keyId }
+      }),
+  })
+
+  route({
     method: "GET", url: "/v1/users", tag: "Admin", auth: [...ADMIN], summary: "List users",
     response: z.array(UserViewSchema), handler: () => store.users(),
   })

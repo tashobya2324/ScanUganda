@@ -10,7 +10,13 @@ export function openDb(path: string): Db {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true })
   const db = new DatabaseSync(path)
   db.exec("PRAGMA foreign_keys = ON")
-  if (path !== ":memory:") db.exec("PRAGMA journal_mode = WAL")
+  if (path !== ":memory:") {
+    db.exec("PRAGMA journal_mode = WAL")
+    // With WAL, NORMAL waits for a disk flush only at checkpoints, not on every saved scan.
+    // A power cut can lose the last moments of scans but cannot corrupt the database.
+    db.exec("PRAGMA synchronous = NORMAL")
+  }
+  db.exec("PRAGMA busy_timeout = 5000")
   db.exec("CREATE TABLE IF NOT EXISTS schema_migrations (id TEXT PRIMARY KEY, applied_at INTEGER NOT NULL)")
   const done = new Set(
     db.prepare("SELECT id FROM schema_migrations").all().map((r) => String(r.id)),
