@@ -1,4 +1,5 @@
 import cors from "@fastify/cors"
+import formbody from "@fastify/formbody"
 import rateLimit from "@fastify/rate-limit"
 import Fastify, { type FastifyError, type FastifyRequest } from "fastify"
 import { verifyToken } from "./auth.ts"
@@ -8,8 +9,10 @@ import {
   type AuthUser, type Registry,
 } from "./http.ts"
 import type { KeyStore } from "./keys.ts"
+import { channelRoutes } from "./routes-channels.ts"
 import { publicRoutes } from "./routes-public.ts"
 import { staffRoutes } from "./routes-staff.ts"
+import { AfricasTalkingSms, NoSmsSender, type SmsSender } from "./sms.ts"
 import type { Store } from "./store.ts"
 
 export interface AppDeps {
@@ -17,11 +20,14 @@ export interface AppDeps {
   keys: KeyStore
   config: Config
   logger?: boolean
+  /** How SMS replies are delivered. Defaults to Africa's Talking when configured, otherwise nothing is sent. */
+  sms?: SmsSender
 }
 
-export async function buildApp({ store, keys, config, logger = false }: AppDeps) {
+export async function buildApp({ store, keys, config, logger = false, sms }: AppDeps) {
   const app = Fastify({ logger, bodyLimit: 1_000_000 })
 
+  await app.register(formbody) // aggregators post USSD and SMS callbacks as forms
   await app.register(cors, { origin: config.corsOrigins.length ? config.corsOrigins : false })
   await app.register(rateLimit, {
     max: config.rateLimitMax,
@@ -66,6 +72,7 @@ export async function buildApp({ store, keys, config, logger = false }: AppDeps)
   const route = makeRoute({ app, registry, authenticate, validateResponses: config.validateResponses })
   publicRoutes(route, store, config)
   staffRoutes(route, store, keys, config)
+  channelRoutes(route, store, config, sms ?? (config.africasTalking ? new AfricasTalkingSms(config.africasTalking) : new NoSmsSender()))
 
   let spec: ReturnType<typeof buildOpenApi> | undefined
   app.get("/openapi.json", { config: { rateLimit: false } }, async () => (spec ??= buildOpenApi(registry.specs)))

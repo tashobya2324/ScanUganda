@@ -9,6 +9,7 @@ const NAV: { to: string; label: string; roles?: Role[] }[] = [
   { to: "/alerts", label: "Alerts" },
   { to: "/feed", label: "Live scans" },
   { to: "/map", label: "Map" },
+  { to: "/ussd", label: "USSD simulator" },
   { to: "/team", label: "Team", roles: ["admin"] },
 ]
 

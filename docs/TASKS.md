@@ -7,7 +7,7 @@
 **Size:** S ≤ 2 h · M ≤ half a day · L ≤ 1 day. Split anything bigger.
 **Deps:** task IDs that must be `DONE` first.
 
-**Current phase: 4 built, exit gate open (real-phone test, Lighthouse, Luganda review). Phase 5 (USSD/SMS) is next. Phases 1 and 2 were started before Phase 0 finished, at the team's request. Phase 0 leftovers (P0-1..P0-5, P0-7, P0-8) still open. Console design tokens exist in `apps/console/src/index.css` but are not yet shared with the PWA (P0-4).**
+**Current phase: 5 built except the aggregator sandbox run (P5-4, needs a team member's account). Phase 4 exit gate also still open (real-phone test, Lighthouse, Luganda review). Phase 6 (integration and hardening) is next. Phases 1 and 2 were started before Phase 0 finished, at the team's request. Phase 0 leftovers (P0-1..P0-5, P0-7, P0-8) still open. Console design tokens exist in `apps/console/src/index.css` but are not yet shared with the PWA (P0-4).**
 
 ---
 
@@ -89,12 +89,12 @@
 
 | ID | Task | Owner | Status | Size | Deps | Notes |
 |---|---|---|---|---|---|---|
-| P5-1 | USSD handler: menu tree, language, district choice, verify by lookup code | - | TODO | L | P2-3 | Responses start `CON`/`END`, ≤ 160 chars |
-| P5-2 | Session handling and input validation (invalid, timeout, back) | - | TODO | M | P5-1 | |
-| P5-3 | Local USSD simulator page in the console | - | TODO | M | P5-1, P3-1 | |
-| P5-4 | Aggregator sandbox account, public callback URL, run the flow from their simulator | - | TODO | M | P5-1 | Needs a team member's account; record steps |
-| P5-5 | SMS verify (stretch, sandbox only) | - | TODO | M | P5-4 | Drop first if short on time |
-| P5-6 | Write up L3 (live short code) requirements for the report | - | TODO | S | P5-4 | |
+| P5-1 | USSD handler: menu tree, language, district choice, verify by lookup code | Tashobya | DONE | L | P2-3 | Responses start `CON`/`END`, ≤ 160 chars |
+| P5-2 | Session handling and input validation (invalid, timeout, back) | Tashobya | DONE | M | P5-1 | State is rebuilt from the chain of inputs each request, so nothing is stored per session. Network timeouts are the aggregator's. 15 checks per phone per 10 min (in memory). Any server fault becomes a polite END screen. |
+| P5-3 | Local USSD simulator page in the console | Tashobya | DONE | M | P5-1, P3-1 | Console page `USSD simulator`: same menu and protocol, shows each step exchanged. Records real scans (channel USSD). |
+| P5-4 | Aggregator sandbox account, public callback URL, run the flow from their simulator | - | BLOCKED | M | P5-1 | Needs a team member to create the aggregator account and run the steps in `docs/USSD-GO-LIVE.md`. Everything on our side is built so it only needs the callback URL and a secret. |
+| P5-5 | SMS verify (stretch, sandbox only) | Tashobya | DONE | M | P5-4 | Drop first if short on time |
+| P5-6 | Write up L3 (live short code) requirements for the report | Tashobya | DONE | S | P5-4 | See `docs/USSD-GO-LIVE.md`. Costs, timelines and approval rules are left as "confirm with the aggregator" because we have no reliable figures. |
 
 ## Phase 6: Integration and hardening
 
@@ -132,6 +132,10 @@
 ## Activity log
 
 Newest first. One line per update: `date · who · task ID · what changed`. Anyone changing a status adds a line here.
+
+- 2026-11-08 · Tashobya · P5-1,2,3,5,6 · USSD menu, SMS check, simulator page and go-live write-up built. API 120 tests (98.7 % coverage), console 49. Checked through the real server with a form-encoded callback exactly as an aggregator sends it, and in a browser through the simulator. NOT done: aggregator sandbox run (P5-4) and any test from a physical phone. Found and fixed: an emoji became two "?" in SMS text (regex needed the `u` flag). Not committed.
+
+- 2026-11-08 · Tashobya · P5-1,2,3,5,6 · Claimed. P5-4 marked BLOCKED: needs a team member's aggregator account.
 
 - 2026-11-06 · Tashobya · P0-1, P0-5, P0-7 · Team clarified the original prototype was a flow mockup, not the product. Moved it to `docs/mockups/` (not served). The preview at :8443 now serves the real web system (`apps/console`) and the mobile app at `/app/`; `pnpm dev` starts API + app + web and, on a fresh clone, creates local secrets and sample data. Found and fixed a real offline bug in the PWA service worker (cache lookups missed when the server sends `Vary: Origin`; deep links failed offline). Pushed to GitHub at the team's request.
 

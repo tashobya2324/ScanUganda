@@ -9,6 +9,10 @@ export interface Config {
   rateLimitMax: number
   /** In tests, every response is checked against its declared schema. */
   validateResponses: boolean
+  /** Shared secret the aggregator sends with USSD/SMS callbacks. Unset means open (development only). */
+  channelSecret?: string
+  /** Africa's Talking credentials for sending SMS replies. Unset means replies are returned but not sent. */
+  africasTalking?: { username: string; apiKey: string; sandbox: boolean; from?: string }
 }
 
 /** Reads configuration from the environment. Refuses to start with weak secrets. */
@@ -18,6 +22,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     if (!v || v.length < 32) {
       throw new Error(`${name} must be set to a random string of at least 32 characters (see apps/api/.env.example)`)
     }
+    return v
+  }
+  const optionalSecret = (v: string | undefined) => {
+    if (!v) return undefined
+    if (v.length < 16) throw new Error("CHANNEL_SECRET must be at least 16 characters")
     return v
   }
   const tokenSecret = need("TOKEN_SECRET")
@@ -32,5 +41,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     corsOrigins: (env.CORS_ORIGINS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
     rateLimitMax: Number(env.RATE_LIMIT_MAX ?? 120),
     validateResponses: false,
+    channelSecret: optionalSecret(env.CHANNEL_SECRET),
+    africasTalking:
+      env.AT_USERNAME && env.AT_API_KEY
+        ? { username: env.AT_USERNAME, apiKey: env.AT_API_KEY, sandbox: env.AT_SANDBOX !== "false", from: env.AT_SMS_FROM || undefined }
+        : undefined,
   }
 }

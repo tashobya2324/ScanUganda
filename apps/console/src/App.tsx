@@ -9,6 +9,7 @@ import { Login } from "./pages/Login"
 import { MapPage } from "./pages/MapPage"
 import { Overview } from "./pages/Overview"
 import { Team } from "./pages/Team"
+import { Ussd } from "./pages/Ussd"
 
 function RequireAuth() {
   const { user } = useAuth()
@@ -33,6 +34,7 @@ export function App() {
             <Route path="alerts" element={<Alerts />} />
             <Route path="feed" element={<Feed />} />
             <Route path="map" element={<MapPage />} />
+            <Route path="ussd" element={<Ussd />} />
             <Route path="team" element={<AdminOnly><Team /></AdminOnly>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react"
+import { useEffect, useId, useRef, type ButtonHTMLAttributes, type ComponentProps, type ReactNode, type SelectHTMLAttributes } from "react"
 import type { ApiError } from "../lib/api"
 import type { Verdict } from "../lib/types"
 
@@ -49,7 +49,7 @@ export function Field({ label, hint, error, children }: { label: string; hint?: 
   )
 }
 
-export function Input({ className, ...p }: InputHTMLAttributes<HTMLInputElement>) {
+export function Input({ className, ...p }: ComponentProps<"input">) {
   return <input {...p} className={cx(control, className)} />
 }
 

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.0.0",
+    "@fastify/formbody": "^8.0.0",
     "@fastify/rate-limit": "^10.0.0",
     "@scanuganda/core": "workspace:*",
     "fastify": "^5.2.0",

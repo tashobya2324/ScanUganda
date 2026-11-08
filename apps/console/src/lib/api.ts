@@ -117,6 +117,9 @@ export const api = {
   scans: (f: { verdict?: Verdict; batchId?: string; limit?: number } = {}) =>
     request<Scan[]>("GET", "/v1/scans" + qs(f)),
 
+  /** Runs one step of the USSD menu exactly as the aggregator would. `text` is the chain of inputs joined by "*". */
+  ussd: (text: string) => request<{ type: "CON" | "END"; message: string; wire: string }>("POST", "/v1/ussd/simulate", { text }),
+
   users: () => request<User[]>("GET", "/v1/users"),
   createUser: (u: { email: string; name: string; password: string; role: Role; manufacturerId?: string }) =>
     request<{ id: string }>("POST", "/v1/users", u),
