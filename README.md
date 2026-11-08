@@ -13,6 +13,7 @@ Course project: Mobile Computing & Mobile Communication (group "Anthropic").
 | API | `apps/api` | One backend for all channels (app, USSD, SMS) |
 | Verification engine | `packages/core` | The rules, shared by the API and the offline app |
 | Plan, tasks, procedure, design | `docs/` | How we build it. Start with `docs/TASKS.md` |
+| **How to run it and install the app** | `docs/RUNNING.md` | Step-by-step guide |
 
 ## Run it
 

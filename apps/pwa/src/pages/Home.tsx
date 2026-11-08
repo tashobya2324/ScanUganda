@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router"
+import { InstallCard } from "../components/Install"
 import { Banner, Button, Icon, Page, VerdictBadge } from "../components/ui"
 import { timeAgo, useT } from "../i18n"
 import { useDataVersion } from "../lib/bus"
@@ -26,21 +27,27 @@ export function Home() {
 
   return (
     <Page>
-      <header className="flex items-center gap-2.5 px-5 pb-2 pt-[max(1.25rem,env(safe-area-inset-top))]">
-        <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width="28" height="28" />
-        <span className="text-lg font-semibold">ScanUganda</span>
+      <header className="rounded-b-[28px] bg-accent px-5 pb-6 pt-[max(1.25rem,env(safe-area-inset-top))] text-accent-ink">
+        <div className="flex items-center gap-2.5">
+          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width="30" height="30" className="rounded-lg bg-white p-0.5" />
+          <span className="flex-1 text-lg font-semibold">ScanUganda</span>
+          <span className="flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium" role="status">
+            <span className={`h-2 w-2 rounded-full ${online ? "bg-[#7ee2b0]" : "bg-[#ffd08a]"}`} />
+            {online ? t("status.online") : t("status.offlineShort")}
+          </span>
+        </div>
+        <div className="mt-6 space-y-1.5">
+          <h1 className="text-3xl font-semibold">{t("home.title")}</h1>
+          <p className="max-w-xs text-white/80">{t("home.lead")}</p>
+        </div>
+        <div className="mt-5 space-y-3">
+          <Button onClick={() => nav("/scan")} className="min-h-14 border-0 text-lg text-accent"><Icon name="scan" size={24} /> {t("home.scan")}</Button>
+          <Button variant="ghost" onClick={() => nav("/type")} className="text-white active:bg-white/10"><Icon name="keyboard" /> {t("home.type")}</Button>
+        </div>
       </header>
 
-      <main className="space-y-6 px-5 pb-6 pt-4">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-semibold">{t("home.title")}</h1>
-          <p className="max-w-sm text-ink-2">{t("home.lead")}</p>
-        </div>
-
-        <div className="space-y-3">
-          <Button variant="primary" onClick={() => nav("/scan")} className="min-h-14 text-lg"><Icon name="scan" size={24} /> {t("home.scan")}</Button>
-          <Button onClick={() => nav("/type")}><Icon name="keyboard" /> {t("home.type")}</Button>
-        </div>
+      <main className="space-y-6 px-5 pb-6 pt-5">
+        <InstallCard />
 
         <div className="space-y-3">
           {!online && <Banner tone="warn" icon="offline" role="status">{t("status.offline")}</Banner>}

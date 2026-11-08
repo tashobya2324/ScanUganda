@@ -17,6 +17,8 @@ const PATHS = {
   keyboard: <><rect x="3" y="6" width="18" height="12" rx="2" /><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10" /></>,
   offline: <><path d="M3 3l18 18M8.5 8.8A10 10 0 0 0 3 12.5M5.5 15a6 6 0 0 1 3-1.6M15.5 9a10 10 0 0 1 5.5 3.5M12 19h.01" /></>,
   chevron: <path d="m9 18 6-6-6-6" />,
+  download: <><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5" /><path d="M5 19.5h14" /></>,
+  home: <path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1Z" />,
 } as const
 export type IconName = keyof typeof PATHS
 
@@ -117,25 +119,35 @@ export function TopBar({ title, back = true, right }: { title: string; back?: bo
 
 export function BottomNav() {
   const { t } = useT()
-  const items: { to: string; key: StringKey; icon: IconName }[] = [
-    { to: "/", key: "nav.scan", icon: "scan" },
+  const items: ({ to: string; key: StringKey; icon: IconName } | "fab")[] = [
+    { to: "/", key: "nav.home", icon: "home" },
     { to: "/history", key: "nav.history", icon: "history" },
+    "fab",
     { to: "/report", key: "nav.report", icon: "report" },
     { to: "/settings", key: "nav.settings", icon: "settings" },
   ]
   return (
-    <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-20 mx-auto grid max-w-md grid-cols-4 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]">
-      {items.map((i) => (
-        <NavLink
-          key={i.to}
-          to={i.to}
-          end={i.to === "/"}
-          className={({ isActive }) => cx("flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-medium", isActive ? "text-accent" : "text-ink-2")}
-        >
-          <Icon name={i.icon} />
-          {t(i.key)}
-        </NavLink>
-      ))}
+    <nav aria-label="Main" className="app-nav fixed inset-x-0 bottom-0 z-20 mx-auto grid max-w-md grid-cols-5 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+      {items.map((i) =>
+        i === "fab" ? (
+          <NavLink key="fab" to="/scan" aria-label={t("nav.scan")} className="flex flex-col items-center justify-start">
+            <span className="-mt-6 flex h-16 w-16 items-center justify-center rounded-full bg-accent text-accent-ink shadow-float ring-4 ring-bg transition-transform active:scale-95">
+              <Icon name="scan" size={28} />
+            </span>
+            <span className="mt-0.5 pb-1.5 text-xs font-medium text-ink-2">{t("nav.scan")}</span>
+          </NavLink>
+        ) : (
+          <NavLink
+            key={i.to}
+            to={i.to}
+            end={i.to === "/"}
+            className={({ isActive }) => cx("flex min-h-16 flex-col items-center justify-center gap-0.5 text-xs font-medium", isActive ? "text-accent" : "text-ink-2")}
+          >
+            <Icon name={i.icon} />
+            {t(i.key)}
+          </NavLink>
+        ),
+      )}
     </nav>
   )
 }
@@ -157,7 +169,7 @@ export function Banner({ tone = "info", icon, children, role }: { tone?: keyof t
 
 export function Page({ children, nav = true }: { children: ReactNode; nav?: boolean }) {
   return (
-    <div className={cx("mx-auto min-h-dvh max-w-md bg-bg", nav && "pb-20")}>
+    <div className={cx("app-shell mx-auto min-h-dvh max-w-md bg-bg", nav && "pb-24")}>
       {children}
       {nav && <BottomNav />}
     </div>

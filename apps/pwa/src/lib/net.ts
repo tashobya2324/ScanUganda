@@ -48,6 +48,19 @@ if (typeof window !== "undefined") {
     installListeners.forEach((l) => l())
   })
 }
+/** True when running from the home screen / app window rather than a browser tab. */
+export function isStandalone(): boolean {
+  if (typeof window === "undefined") return false
+  return window.matchMedia?.("(display-mode: standalone)").matches === true || (navigator as Navigator & { standalone?: boolean }).standalone === true
+}
+
+export function installPlatform(): "ios" | "android" | "other" {
+  const ua = typeof navigator === "undefined" ? "" : navigator.userAgent
+  if (/iphone|ipad|ipod/i.test(ua) || (/macintosh/i.test(ua) && navigator.maxTouchPoints > 1)) return "ios"
+  if (/android/i.test(ua)) return "android"
+  return "other"
+}
+
 export function useInstall(): InstallPrompt | undefined {
   const [, force] = useState(0)
   useEffect(() => {

@@ -135,6 +135,8 @@
 
 Newest first. One line per update: `date · who · task ID · what changed`. Anyone changing a status adds a line here.
 
+- 2026-11-08 · Tashobya · P4 polish · App now looks and feels like an installed app: green header, raised Scan button in a five-item bottom bar, no text selection on chrome, phone-sized frame on wide screens. Home and Settings carry a clear "Download the app" card (one-tap install where the browser allows; written steps for iPhone Safari and others). Added `docs/RUNNING.md`. PWA 37 tests, `pnpm e2e` 32/32. Not committed; install on a real phone still unverified (TEAM-INPUT #1, #2).
+
 - 2026-11-08 · Tashobya · P6-1,2,3, P4-10 · Phase 6 done except P6-4. `pnpm e2e` (32/32), `pnpm load`, security pass (`docs/SECURITY.md`), Lighthouse. API 152 tests, core 86, console 49, PWA 37. Real findings fixed: signature checking was 80 % of QR-check cost (now native on the server); verify counted a batch's units on every scan; one forged code flooded alerts; sign-in could be guessed; no key rotation; request logs held the channel key. Dev-tool vulnerabilities cleared (Vite 8.3.6, Vitest 4.1.12). Not committed. Added TEAM-INPUT #13-16 (incl. Ethan co-author request).
 
 - 2026-11-08 · Tashobya · P6-1..P6-4 · Phase 5 committed (e7fb946, not pushed). Phase 6 started: doing everything possible alone first (security pass, end-to-end scenarios, load check, accessibility audit); P6-4 BLOCKED on real phones. Created `docs/TEAM-INPUT.md`, the register of everything that needs the team.

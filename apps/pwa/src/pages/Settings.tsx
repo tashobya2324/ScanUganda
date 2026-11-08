@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from "react"
+import { InstallCard } from "../components/Install"
 import { Banner, Button, Page, TopBar } from "../components/ui"
 import { timeAgo, useT } from "../i18n"
 import { notifyChange } from "../lib/bus"
 import { db } from "../lib/db"
-import { useInstall, useSyncState } from "../lib/net"
+import { useSyncState } from "../lib/net"
 import { setPrefs, usePrefs } from "../lib/prefs"
 import { refreshCache } from "../lib/sync"
 
@@ -31,7 +32,6 @@ export function Settings() {
   const { t } = useT()
   const prefs = usePrefs()
   const { cache, queued } = useSyncState()
-  const install = useInstall()
   const [updating, setUpdating] = useState(false)
   const [message, setMessage] = useState<string>()
 
@@ -77,12 +77,7 @@ export function Settings() {
           </div>
         </section>
 
-        {install && (
-          <section className="space-y-2 rounded-panel border border-line bg-surface p-4">
-            <p className="text-sm text-ink-2">{t("settings.installHelp")}</p>
-            <Button variant="primary" onClick={() => void install.prompt()}>{t("settings.install")}</Button>
-          </section>
-        )}
+        <InstallCard />
 
         {message && <Banner role="status">{message}</Banner>}
 
