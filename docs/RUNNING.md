@@ -52,7 +52,20 @@ The admin can create other users (manufacturer, inspector) under **Team**. These
 
 The app is a PWA: you "download" it from the browser, with no app store. Two things are needed: the phone must reach the app, and the address must be **https** (cameras and installing only work on https or `localhost`).
 
-### Easiest: a temporary https tunnel to your laptop
+### No internet: phone and PC on the same network
+
+The PC is the server; the phone connects straight to it.
+
+1. **Network.** Put both on the same Wi-Fi. If a campus or public Wi-Fi blocks devices from seeing each other (the page never loads), use a hotspot instead: turn on the phone's hotspot and join the PC to it, or use Windows *Settings → Network → Mobile hotspot* and join the phone to the PC.
+2. **Allow the port once** (PowerShell opened with *Run as administrator*):
+   ```
+   New-NetFirewallRule -DisplayName "ScanUganda dev (8443, local network)" -Direction Inbound -Protocol TCP -LocalPort 8443 -RemoteAddress LocalSubnet -Action Allow -Profile Any
+   ```
+3. **Find the PC's address:** `ipconfig`, the IPv4 address of the Wi-Fi adapter (for example `192.168.1.20`).
+4. **Start** `pnpm dev`, then on the phone open `http://192.168.1.20:8443/app/` (your address instead).
+5. **Make the camera and install work.** Browsers only allow these on https, and a plain local address is not https. On **Android Chrome** tell it to trust your PC's address: open `chrome://flags`, search *Insecure origins treated as secure*, enter `http://192.168.1.20:8443`, set it to *Enabled*, tap *Relaunch*. Now the camera and **Download the app** work. **iPhone** has no such switch: use the tunnel below, or type codes by hand over plain http.
+
+### With internet: a temporary https tunnel to your laptop
 
 ```
 pnpm dev
