@@ -94,7 +94,7 @@ Anything that changes an architecture decision in PLAN §2, adds a dependency of
 | Layer | Tool | What |
 |---|---|---|
 | `core` | Vitest | Every rule, boundaries, scenario table. Coverage ≥ 90 %. |
-| `api` | Vitest + temp SQLite DB | Every endpoint, auth and error paths. |
+| `api` | Vitest + in-memory Postgres (PGlite) | Every endpoint, auth and error paths. |
 | UI components | Vitest + Testing Library | Verdict screens, forms, offline banner. |
 | End to end | Playwright | PLAN §6 scenarios. |
 | Manual | Real phones | Phase 6 round; log issues with severity: **S1** data loss/wrong verdict, **S2** flow blocked, **S3** annoying, **S4** cosmetic. |

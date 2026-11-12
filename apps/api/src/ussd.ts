@@ -15,9 +15,9 @@ import type { ScanOutcome } from "./verification.ts"
 export interface UssdDeps {
   regions: Region[]
   /** Runs the check. `region` is the district the user picked, if any. */
-  check: (code: string, region: Region | undefined) => ScanOutcome
+  check: (code: string, region: Region | undefined) => Promise<ScanOutcome>
   /** Files a report. */
-  report: (description: string) => void
+  report: (description: string) => Promise<void>
   /** Called before any action that writes data; false means "too many attempts". */
   allow: () => boolean
 }
@@ -69,7 +69,7 @@ type Step = State | UssdReply
 
 const isReply = (x: Step): x is UssdReply => "wire" in x
 
-function step(state: State, input: string, deps: UssdDeps): Step {
+async function step(state: State, input: string, deps: UssdDeps): Promise<Step> {
   const key = input.trim()
   switch (state.s) {
     case "main":
@@ -94,7 +94,7 @@ function step(state: State, input: string, deps: UssdDeps): Step {
         if (!region) return { ...state, note: "Choose a number." }
       }
       if (!deps.allow()) return reply("END", "Too many checks from this number. Please try again later.")
-      return reply("END", composeVerdict(deps.check(state.code, region)))
+      return reply("END", composeVerdict(await deps.check(state.code, region)))
     }
 
     case "report": {
@@ -103,21 +103,21 @@ function step(state: State, input: string, deps: UssdDeps): Step {
       const description = key
       if (description.length < MIN_REPORT) return { s: "report", note: "Please write at least 10 characters." }
       if (!deps.allow()) return reply("END", "Too many reports from this number. Please try again later.")
-      deps.report(description.slice(0, 500))
+      await deps.report(description.slice(0, 500))
       return reply("END", "Thank you. We have your report.")
     }
   }
 }
 
 /** Turns the chain of inputs the aggregator sent into this screen's reply. */
-export function runUssd(text: string, deps: UssdDeps): UssdReply {
+export async function runUssd(text: string, deps: UssdDeps): Promise<UssdReply> {
   const inputs = text === "" ? [] : text.split("*")
   // Dialling *284*123456789012# jumps straight to the code step.
   const direct = inputs.length > 0 && /^\d{12}$/.test(normalizeLookupCode(inputs[0]!))
   let state: State = direct ? { s: "code" } : { s: "main" }
 
   for (let i = 0; i < inputs.length; i++) {
-    const next = step(state, inputs[i]!, deps)
+    const next = await step(state, inputs[i]!, deps)
     if (isReply(next)) return next
     state = next
   }

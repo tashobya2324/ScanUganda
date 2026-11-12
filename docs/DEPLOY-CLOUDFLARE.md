@@ -1,6 +1,8 @@
 # Putting ScanUganda on Cloudflare (free plan)
 
-Cloudflare's free plan serves the **web system and the mobile app** over https. It cannot run the **API** (it needs a Node.js process, a SQLite file and key files on a disk). So the API runs somewhere else and a small Worker passes `/v1/*` through to it.
+This is layout **B** from [DEPLOY.md](DEPLOY.md): one combined site. Cloudflare's free plan serves the **web system and the mobile app** over https, and a small Worker passes `/v1/*` through to the API.
+
+Since 2026-11-12 the API itself can also run on Cloudflare, as its own Worker with a Postgres database (DEPLOY.md §1-2; it needs Workers Paid). The proxy then reaches it through a **service binding**: uncomment `services` in the root `wrangler.jsonc` and leave `API_ORIGIN` empty. The options in §2 below still apply when the API runs elsewhere.
 
 ```
 phone / browser ──https──> Cloudflare (free)
@@ -30,8 +32,9 @@ Then add the variable **`API_ORIGIN`** (Settings → Variables and Secrets): the
 | Option | Cost | Good for | Watch out |
 |---|---|---|---|
 | **Your laptop + a Cloudflare quick tunnel** | Free, no card | Demos and phone testing | The laptop must be on and `pnpm dev` running. The tunnel address changes each time you start it, so update `API_ORIGIN` each time. Works through campus Wi-Fi (it only makes outgoing connections). |
+| **The API as a Cloudflare Worker** (DEPLOY.md) | Workers Paid ($5/month) + free Neon database | An always-on API with no server to look after | Set up the database and three secrets once (DEPLOY.md §1). |
 | **Oracle Cloud "Always Free" VM** | Free, needs a card for identity check | An always-on API | More setup; availability depends on region. |
-| Fly.io, Railway, Render | Free tiers change and generally do not include a lasting disk | Not recommended | Without a disk, a restart wipes the database **and the signing keys**: every printed code would stop verifying. Check current terms before using. |
+| Fly.io, Railway, Render | Free tiers change | With a hosted Postgres (`DATABASE_URL`) and `KEY_ENCRYPTION_KEY`, no disk is needed any more | Without those two settings, a restart wipes the local database **and the signing keys**. Check current terms before using. |
 
 **Laptop + quick tunnel**, step by step:
 1. Install once: `winget install Cloudflare.cloudflared`.

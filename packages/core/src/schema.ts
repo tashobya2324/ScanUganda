@@ -1,10 +1,14 @@
 /**
- * Database schema as ordered migrations (SQLite dialect, kept portable).
+ * Database schema as ordered migrations (PostgreSQL dialect).
  * The API applies any migration whose `id` it has not recorded yet.
  * Never edit a released migration: add a new one.
  *
- * Conventions: ids are text (ULID/UUID); timestamps are epoch milliseconds;
- * coordinates are decimal degrees.
+ * Conventions: ids are text (ULID/UUID); timestamps are epoch milliseconds in
+ * BIGINT; coordinates are decimal degrees in DOUBLE PRECISION (REAL would be a
+ * 4-byte float in Postgres and blur a location by metres).
+ *
+ * History: until 2026-11-12 these were SQLite migrations. No database had been
+ * deployed, so they were rewritten in place rather than added to.
  */
 
 export interface Migration {
@@ -19,7 +23,7 @@ export const migrations: Migration[] = [
 CREATE TABLE manufacturers (
   id          TEXT PRIMARY KEY,
   name        TEXT NOT NULL UNIQUE,
-  created_at  INTEGER NOT NULL
+  created_at  BIGINT NOT NULL
 );
 
 CREATE TABLE users (
@@ -29,16 +33,16 @@ CREATE TABLE users (
   name             TEXT NOT NULL,
   role             TEXT NOT NULL CHECK (role IN ('admin','manufacturer','inspector')),
   manufacturer_id  TEXT REFERENCES manufacturers(id),
-  created_at       INTEGER NOT NULL,
+  created_at       BIGINT NOT NULL,
   CHECK (role <> 'manufacturer' OR manufacturer_id IS NOT NULL)
 );
 
 CREATE TABLE regions (
   id         TEXT PRIMARY KEY,
   name       TEXT NOT NULL UNIQUE,
-  lat        REAL NOT NULL,
-  lng        REAL NOT NULL,
-  radius_km  REAL NOT NULL CHECK (radius_km > 0)
+  lat        DOUBLE PRECISION NOT NULL,
+  lng        DOUBLE PRECISION NOT NULL,
+  radius_km  DOUBLE PRECISION NOT NULL CHECK (radius_km > 0)
 );
 
 /* Public halves of signing keys; private keys never enter the database. */
@@ -46,8 +50,8 @@ CREATE TABLE signing_keys (
   id               TEXT PRIMARY KEY,
   manufacturer_id  TEXT NOT NULL REFERENCES manufacturers(id),
   public_key       TEXT NOT NULL,
-  created_at       INTEGER NOT NULL,
-  retired_at       INTEGER
+  created_at       BIGINT NOT NULL,
+  retired_at       BIGINT
 );
 
 CREATE TABLE products (
@@ -64,9 +68,9 @@ CREATE TABLE batches (
   manufacturer_id  TEXT NOT NULL REFERENCES manufacturers(id),
   batch_code       TEXT NOT NULL,
   key_id           TEXT NOT NULL REFERENCES signing_keys(id),
-  manufactured_at  INTEGER NOT NULL,
-  expires_at       INTEGER NOT NULL,
-  recalled_at      INTEGER,
+  manufactured_at  BIGINT NOT NULL,
+  expires_at       BIGINT NOT NULL,
+  recalled_at      BIGINT,
   recall_reason    TEXT,
   UNIQUE (manufacturer_id, batch_code),
   CHECK (expires_at > manufactured_at),
@@ -94,17 +98,17 @@ CREATE TABLE scans (
   id            TEXT PRIMARY KEY,
   batch_id      TEXT,
   serial        TEXT,
-  scanned_at    INTEGER NOT NULL,
-  received_at   INTEGER NOT NULL,
+  scanned_at    BIGINT NOT NULL,
+  received_at   BIGINT NOT NULL,
   channel       TEXT NOT NULL CHECK (channel IN ('PWA','USSD','SMS')),
   scanner_role  TEXT NOT NULL CHECK (scanner_role IN ('consumer','retailer','inspector')),
-  lat           REAL,
-  lng           REAL,
-  accuracy_m    REAL,
+  lat           DOUBLE PRECISION,
+  lng           DOUBLE PRECISION,
+  accuracy_m    DOUBLE PRECISION,
   verdict       TEXT NOT NULL CHECK (verdict IN ('GENUINE','CHECK','STOP')),
   reasons_json  TEXT NOT NULL DEFAULT '[]',
-  /* 1 when first judged offline and re-evaluated after sync. */
-  was_offline   INTEGER NOT NULL DEFAULT 0
+  /* True when first judged offline and re-evaluated after sync. */
+  was_offline   BOOLEAN NOT NULL DEFAULT FALSE
 );
 CREATE INDEX scans_unit_idx ON scans (batch_id, serial, scanned_at);
 CREATE INDEX scans_time_idx ON scans (scanned_at);
@@ -118,8 +122,8 @@ CREATE TABLE alerts (
   priority     TEXT NOT NULL CHECK (priority IN ('low','medium','high')),
   status       TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','investigating','resolved')),
   message      TEXT NOT NULL,
-  created_at   INTEGER NOT NULL,
-  updated_at   INTEGER NOT NULL,
+  created_at   BIGINT NOT NULL,
+  updated_at   BIGINT NOT NULL,
   assigned_to  TEXT REFERENCES users(id)
 );
 CREATE INDEX alerts_status_idx ON alerts (status, priority, created_at);
@@ -130,11 +134,11 @@ CREATE TABLE reports (
   scan_id       TEXT REFERENCES scans(id),
   description   TEXT NOT NULL,
   shop_name     TEXT,
-  lat           REAL,
-  lng           REAL,
+  lat           DOUBLE PRECISION,
+  lng           DOUBLE PRECISION,
   photo_path    TEXT,
   contact       TEXT,
-  created_at    INTEGER NOT NULL
+  created_at    BIGINT NOT NULL
 );
 `,
   },
@@ -145,6 +149,20 @@ CREATE TABLE reports (
     sql: /* sql */ `
 ALTER TABLE scans ADD COLUMN client_id TEXT;
 CREATE UNIQUE INDEX scans_client_id_idx ON scans (client_id) WHERE client_id IS NOT NULL;
+`,
+  },
+  {
+    id: "003_sealed_signing_keys",
+    // Where the server has no disk (Cloudflare Workers), private signing keys are kept
+    // here ENCRYPTED with a secret that lives only in the host's secret store
+    // (KEY_ENCRYPTION_KEY). A copy of the database alone cannot sign codes.
+    // No foreign key: the secret is written just before its public half.
+    sql: /* sql */ `
+CREATE TABLE sealed_signing_keys (
+  key_id      TEXT PRIMARY KEY,
+  sealed      TEXT NOT NULL,
+  created_at  BIGINT NOT NULL
+);
 `,
   },
 ]

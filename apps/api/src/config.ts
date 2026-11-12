@@ -1,7 +1,13 @@
 export interface Config {
   port: number
-  dbPath: string
+  /** postgres://... for a real server. Unset: an in-process database (PGlite) in `pgliteDir`. */
+  databaseUrl?: string
+  /** PGlite data folder for local development (ignored when databaseUrl is set). */
+  pgliteDir: string
+  /** Folder for private signing keys, one file each (Node hosts). Ignored when keyEncryptionKey is set. */
   keysDir: string
+  /** Set: private keys are kept in the database, encrypted with this secret (required on Cloudflare Workers). */
+  keyEncryptionKey?: string
   tokenSecret: string
   lookupPepper: string
   corsOrigins: string[]
@@ -22,9 +28,10 @@ export interface Config {
 }
 
 /** Reads configuration from the environment. Refuses to start with weak secrets. */
-export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
+export function loadConfig(env: Record<string, unknown> = process.env): Config {
+  const str = (name: string): string | undefined => (typeof env[name] === "string" && env[name] !== "" ? (env[name] as string) : undefined)
   const need = (name: string): string => {
-    const v = env[name]
+    const v = str(name)
     if (!v || v.length < 32) {
       throw new Error(`${name} must be set to a random string of at least 32 characters (see apps/api/.env.example)`)
     }
@@ -38,22 +45,28 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const tokenSecret = need("TOKEN_SECRET")
   const lookupPepper = need("LOOKUP_PEPPER")
   if (tokenSecret === lookupPepper) throw new Error("TOKEN_SECRET and LOOKUP_PEPPER must differ")
+  const keyEncryptionKey = str("KEY_ENCRYPTION_KEY")
+  if (keyEncryptionKey !== undefined && keyEncryptionKey.length < 32) throw new Error("KEY_ENCRYPTION_KEY must be at least 32 characters")
+  if (keyEncryptionKey !== undefined && [tokenSecret, lookupPepper].includes(keyEncryptionKey)) throw new Error("KEY_ENCRYPTION_KEY must differ from the other secrets")
   return {
-    port: Number(env.API_PORT ?? 3000),
-    dbPath: env.DB_PATH ?? "./data/scanuganda.db",
-    keysDir: env.KEYS_DIR ?? "./data/keys",
+    port: Number(str("API_PORT") ?? 3000),
+    databaseUrl: str("DATABASE_URL"),
+    pgliteDir: str("PGLITE_DIR") ?? "./data/pglite",
+    keysDir: str("KEYS_DIR") ?? "./data/keys",
+    keyEncryptionKey,
     tokenSecret,
     lookupPepper,
-    corsOrigins: (env.CORS_ORIGINS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
-    rateLimitMax: Number(env.RATE_LIMIT_MAX ?? 120),
-    verifyRateLimit: Number(env.VERIFY_RATE_LIMIT ?? 60),
-    loginRateLimit: Number(env.LOGIN_RATE_LIMIT ?? 10),
-    trustProxy: env.TRUST_PROXY === "true",
+    corsOrigins: (str("CORS_ORIGINS") ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+    rateLimitMax: Number(str("RATE_LIMIT_MAX") ?? 120),
+    verifyRateLimit: Number(str("VERIFY_RATE_LIMIT") ?? 60),
+    loginRateLimit: Number(str("LOGIN_RATE_LIMIT") ?? 10),
+    trustProxy: str("TRUST_PROXY") === "true",
     validateResponses: false,
-    channelSecret: optionalSecret(env.CHANNEL_SECRET),
-    africasTalking:
-      env.AT_USERNAME && env.AT_API_KEY
-        ? { username: env.AT_USERNAME, apiKey: env.AT_API_KEY, sandbox: env.AT_SANDBOX !== "false", from: env.AT_SMS_FROM || undefined }
-        : undefined,
+    channelSecret: optionalSecret(str("CHANNEL_SECRET")),
+    africasTalking: (() => {
+      const username = str("AT_USERNAME")
+      const apiKey = str("AT_API_KEY")
+      return username && apiKey ? { username, apiKey, sandbox: str("AT_SANDBOX") !== "false", from: str("AT_SMS_FROM") } : undefined
+    })(),
   }
 }

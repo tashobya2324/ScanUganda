@@ -1,0 +1,12 @@
+// The web system as a static site on Cloudflare (Workers static assets).
+// Build with VITE_API_URL set (see apps/console/.env.example), then `pnpm deploy:cloudflare`. Steps: docs/DEPLOY.md.
+{
+  "$schema": "../api/node_modules/wrangler/config-schema.json",
+  "name": "scanuganda-web",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    // Deep links such as /batches/abc load the app, which then shows the right page.
+    "not_found_handling": "single-page-application"
+  }
+}

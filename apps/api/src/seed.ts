@@ -47,26 +47,27 @@ export async function seedDemo(
   password: string,
   now = Date.now(),
 ): Promise<SeedResult> {
-  for (const r of SEED_REGIONS) store.insertRegion(r)
+  for (const r of SEED_REGIONS) await store.insertRegion(r)
 
-  const maker = (name: string) => {
-    const id = store.insertManufacturer(name)
-    const keyId = `k_${shortId()}`
-    store.insertKey(keyId, id, keys.create(keyId))
-    return id
-  }
-  const pearl = maker("Pearl Sugar Works")
-  const nile = maker("Nile Valley Beverages")
-  const acacia = maker("Acacia Cosmetics")
-  const kilimo = maker("Kilimo Agro-Chem")
+  const maker = (name: string) =>
+    store.tx(async (s) => {
+      const id = await s.insertManufacturer(name)
+      const keyId = `k_${shortId()}`
+      await s.insertKey(keyId, id, await keys.create(keyId, s))
+      return id
+    })
+  const pearl = await maker("Pearl Sugar Works")
+  const nile = await maker("Nile Valley Beverages")
+  const acacia = await maker("Acacia Cosmetics")
+  const kilimo = await maker("Kilimo Agro-Chem")
 
   const product = (manufacturerId: string, name: string, category: "FOOD" | "BEVERAGE" | "COSMETIC" | "AGRO_CHEMICAL", packSize: string) =>
     store.insertProduct({ manufacturerId, name, category, packSize })
-  const sugar = product(pearl, "Premium White Sugar", "FOOD", "1 kg packet")
-  const cereal = product(pearl, "Infant Maize Cereal", "FOOD", "400 g tin")
-  const orange = product(nile, "Sparkling Orange", "BEVERAGE", "500 ml bottle")
-  const lotion = product(acacia, "Shea Body Lotion", "COSMETIC", "400 ml")
-  const pesticide = product(kilimo, "Cypermethrin 50 EC", "AGRO_CHEMICAL", "250 ml")
+  const sugar = await product(pearl, "Premium White Sugar", "FOOD", "1 kg packet")
+  const cereal = await product(pearl, "Infant Maize Cereal", "FOOD", "400 g tin")
+  const orange = await product(nile, "Sparkling Orange", "BEVERAGE", "500 ml bottle")
+  const lotion = await product(acacia, "Shea Body Lotion", "COSMETIC", "400 ml")
+  const pesticide = await product(kilimo, "Cypermethrin 50 EC", "AGRO_CHEMICAL", "250 ml")
 
   const users = [
     { email: "admin@scanuganda.test", name: "Site Admin", role: "admin" as const, manufacturerId: null },
@@ -74,30 +75,30 @@ export async function seedDemo(
     { email: "inspector@scanuganda.test", name: "UNBS Inspector", role: "inspector" as const, manufacturerId: null },
   ]
   const hash = await hashPassword(password)
-  for (const u of users) store.insertUser({ ...u, passwordHash: hash })
+  for (const u of users) await store.insertUser({ ...u, passwordHash: hash })
 
   const codes: DemoCode[] = []
-  const batch = (
+  const batch = async (
     scenario: string, manufacturerId: string, productId: string, productName: string, batchCode: string,
     opts: { ageDays: number; lifeDays: number; regions?: string[]; stage: Stage; units: number; recall?: string },
   ) => {
-    const keyId = store.activeKeyId(manufacturerId)!
-    const id = store.insertBatch({
+    const keyId = (await store.activeKeyId(manufacturerId))!
+    const id = await store.insertBatch({
       productId, manufacturerId, batchCode, keyId,
       manufacturedAt: now - opts.ageDays * DAY, expiresAt: now + opts.lifeDays * DAY, regionIds: opts.regions ?? [],
     })
-    const units = generateUnits(store, keys, pepper, { id, keyId }, opts.units)
-    for (let i = 0; i < STAGES.indexOf(opts.stage); i++) store.advanceLifecycle(id, STAGES[i]!, STAGES[i + 1]!)
-    if (opts.recall) store.setRecall(id, { at: now - DAY, reason: opts.recall })
+    const units = await generateUnits(store, keys, pepper, { id, keyId }, opts.units)
+    for (let i = 0; i < STAGES.indexOf(opts.stage); i++) await store.advanceLifecycle(id, STAGES[i]!, STAGES[i + 1]!)
+    if (opts.recall) await store.setRecall(id, { at: now - DAY, reason: opts.recall })
     for (const u of units) codes.push({ scenario, batchCode, product: productName, serial: u.serial, payload: u.payload, lookupCode: u.lookupCode })
   }
 
-  batch("E1 genuine, on sale nationwide", pearl, sugar, "Premium White Sugar", "PS-2408-17", { ageDays: 60, lifeDays: 300, stage: "AT_DISTRIBUTOR", units: 10 })
-  batch("E3 regional stock (Kapchorwa, Mbale only)", kilimo, pesticide, "Cypermethrin 50 EC", "KA-2410-03", { ageDays: 30, lifeDays: 500, regions: ["kapchorwa", "mbale"], stage: "AT_DISTRIBUTOR", units: 10 })
-  batch("E5 still in the factory", nile, orange, "Sparkling Orange", "NV-2411-01", { ageDays: 2, lifeDays: 180, stage: "IN_FACTORY", units: 5 })
-  batch("in transit", nile, orange, "Sparkling Orange", "NV-2410-04", { ageDays: 14, lifeDays: 180, stage: "IN_TRANSIT", units: 5 })
-  batch("E6 recalled", pearl, cereal, "Infant Maize Cereal", "PC-2406-02", { ageDays: 120, lifeDays: 200, stage: "AT_RETAIL", units: 5, recall: "Packaging fault: seal may fail" })
-  batch("expired", acacia, lotion, "Shea Body Lotion", "AC-2305-09", { ageDays: 700, lifeDays: -10, stage: "AT_RETAIL", units: 3 })
+  await batch("E1 genuine, on sale nationwide", pearl, sugar, "Premium White Sugar", "PS-2408-17", { ageDays: 60, lifeDays: 300, stage: "AT_DISTRIBUTOR", units: 10 })
+  await batch("E3 regional stock (Kapchorwa, Mbale only)", kilimo, pesticide, "Cypermethrin 50 EC", "KA-2410-03", { ageDays: 30, lifeDays: 500, regions: ["kapchorwa", "mbale"], stage: "AT_DISTRIBUTOR", units: 10 })
+  await batch("E5 still in the factory", nile, orange, "Sparkling Orange", "NV-2411-01", { ageDays: 2, lifeDays: 180, stage: "IN_FACTORY", units: 5 })
+  await batch("in transit", nile, orange, "Sparkling Orange", "NV-2410-04", { ageDays: 14, lifeDays: 180, stage: "IN_TRANSIT", units: 5 })
+  await batch("E6 recalled", pearl, cereal, "Infant Maize Cereal", "PC-2406-02", { ageDays: 120, lifeDays: 200, stage: "AT_RETAIL", units: 5, recall: "Packaging fault: seal may fail" })
+  await batch("expired", acacia, lotion, "Shea Body Lotion", "AC-2305-09", { ageDays: 700, lifeDays: -10, stage: "AT_RETAIL", units: 3 })
 
   return { users: users.map((u) => ({ email: u.email, role: u.role })), codes }
 }

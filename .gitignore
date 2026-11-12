@@ -3,6 +3,8 @@ dist/
 build/
 .cache/
 .env*
+# Wrangler's local secrets file (Cloudflare Workers)
+.dev.vars*
 .vite/
 vite.config.*.timestamp-*
 *.tsbuildinfo

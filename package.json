@@ -12,7 +12,11 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "format": "oxfmt",
     "e2e": "node scripts/e2e.mjs",
-    "load": "node scripts/load-verify.mjs"
+    "load": "node scripts/load-verify.mjs",
+    "deploy:api": "pnpm --filter @scanuganda/api deploy:worker",
+    "deploy:web": "pnpm --filter @scanuganda/console deploy:cloudflare",
+    "deploy:app": "pnpm --filter @scanuganda/pwa deploy:cloudflare",
+    "db:migrate": "pnpm --filter @scanuganda/api db:migrate"
   },
   "dependencies": {
     "react": "^19.0.0",

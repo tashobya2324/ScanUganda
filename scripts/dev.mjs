@@ -39,7 +39,7 @@ if (!existsSync(envFile)) {
     [
       "# Created by `pnpm dev` for local development only. Not committed (git-ignored).",
       "API_PORT=3000",
-      "DB_PATH=./data/scanuganda.db",
+      "PGLITE_DIR=./data/pglite",
       "KEYS_DIR=./data/keys",
       `TOKEN_SECRET=${secret()}`,
       `LOOKUP_PEPPER=${secret()}`,
@@ -49,7 +49,8 @@ if (!existsSync(envFile)) {
   )
   console.log("[setup] created apps/api/.env with new local secrets")
 }
-if (!existsSync(path.join(api, "data/scanuganda.db"))) {
+// The local database is PGlite (Postgres in-process) in data/pglite; an older SQLite file is ignored.
+if (!existsSync(path.join(api, "data/pglite"))) {
   console.log("[setup] loading sample data…")
   execFileSync(process.execPath, [tsx, "src/seed-cli.ts"], { cwd: api, stdio: "inherit" })
   console.log(`[setup] sign in with admin@scanuganda.test / ${DEMO_PASSWORD}   (also pearl@… and inspector@…)`)

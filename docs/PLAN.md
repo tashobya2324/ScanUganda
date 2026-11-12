@@ -22,7 +22,7 @@ If time runs out, the order of sacrifice (last item dropped first) is: native ap
 |---|---|---|
 | A1 | TypeScript everywhere, pnpm workspaces monorepo: `apps/pwa`, `apps/console`, `apps/api`, `packages/core`. | One language for the team; shared types and logic. |
 | A2 | `packages/core` holds the **verification engine** as pure functions (no I/O). The API, the USSD handler and the offline PWA all call the same code. | One set of rules, testable without a server. |
-| A3 | Backend: Node + Fastify (or Express) + SQLite via `better-sqlite3`. | Proposal names SQLite; zero setup; migrations kept so a move to Postgres is cheap. |
+| A3 | Backend: Hono + PostgreSQL (PGlite in-process for development and tests). Runs on Node or Cloudflare Workers. *Was Fastify + SQLite until 2026-11-12, see decisions/2026-11-12-postgres-hono-separate-deploys.md.* | Hosting on Cloudflare; still zero setup locally. |
 | A4 | Codes are **Ed25519-signed**. QR payload = `batchId.serial.signature`. The server holds the private key; the PWA caches only public keys. | Offline validation without shipping a secret. HMAC would require the secret on the device. |
 | A5 | Scratch/USSD code is a random 12-digit lookup stored **hashed** server-side. It needs the server (no offline). | Feature phones cannot verify signatures; short codes cannot carry one. |
 | A6 | PWA: Vite + React + service worker (`vite-plugin-pwa`), IndexedDB (Dexie) as the offline store, `BarcodeDetector` with `zxing-wasm` fallback for QR. | Service worker and IndexedDB are the browser equivalents of the proposal's "local SQLite cache". |

@@ -1,0 +1,11 @@
+// The mobile app (PWA) as a static site on Cloudflare (Workers static assets), served at "/".
+// Build with VITE_API_URL set (see apps/pwa/.env.example), then `pnpm deploy:cloudflare`. Steps: docs/DEPLOY.md.
+{
+  "$schema": "../api/node_modules/wrangler/config-schema.json",
+  "name": "scanuganda-app",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

@@ -1,0 +1,32 @@
+// The API as a Cloudflare Worker. Steps, secrets and the Hyperdrive setup: docs/DEPLOY.md.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "scanuganda-api",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-10-01",
+  // node:crypto (passwords, tokens, Ed25519), node:async_hooks (per-request database), Buffer.
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+
+  // Pooled connection to Postgres. Create it once with
+  //   npx wrangler hyperdrive create scanuganda-db --connection-string="postgres://..."
+  // and paste the id it prints here. For `wrangler dev`, localConnectionString points at a
+  // database on your machine (see docs/DEPLOY.md).
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "REPLACE_WITH_YOUR_HYPERDRIVE_ID",
+      "localConnectionString": "postgres://postgres:postgres@127.0.0.1:54329/postgres"
+    }
+  ],
+
+  // Plain settings. Secrets (TOKEN_SECRET, LOOKUP_PEPPER, KEY_ENCRYPTION_KEY, CHANNEL_SECRET,
+  // AT_API_KEY) are set with `npx wrangler secret put NAME`, never here.
+  "vars": {
+    // The web system's and mobile app's addresses, comma-separated.
+    "CORS_ORIGINS": "https://scanuganda-web.example.workers.dev,https://scanuganda-app.example.workers.dev",
+    "RATE_LIMIT_MAX": "120",
+    "VERIFY_RATE_LIMIT": "60",
+    "LOGIN_RATE_LIMIT": "10"
+  }
+}

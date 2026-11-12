@@ -76,14 +76,14 @@ export function publicRoutes(route: Route, store: Store, config: Config): void {
       recalledBatchIds: z.array(z.string()),
       regions: z.array(RegionSchema),
     }),
-    handler: () => {
-      const batches = store.batches()
+    handler: async () => {
+      const batches = await store.batches()
       return {
         syncedAt: Date.now(),
-        publicKeys: store.publicKeys(),
+        publicKeys: await store.publicKeys(),
         batches: Object.fromEntries(batches.map((b) => [b.id, { keyId: b.keyId, expiresAt: b.expiresAt }])),
         recalledBatchIds: batches.filter((b) => b.recall).map((b) => b.id),
-        regions: store.regions(),
+        regions: await store.regions(),
       }
     },
   })
@@ -107,13 +107,20 @@ export function publicRoutes(route: Route, store: Store, config: Config): void {
         ]),
       ),
     }),
-    handler: ({ body }) => {
+    handler: async ({ body }) => {
       const now = Date.now()
-      const results = body.scans.map((s) => {
+      // One at a time, in order: a later scan of the same unit is judged against the earlier ones.
+      const results = []
+      for (const s of body.scans) results.push(await syncOne(s, now))
+      return { results }
+    },
+  })
+
+  async function syncOne(s: z.infer<typeof QueuedScan>, now: number) {
         try {
           if (s.scannedAt > now + MAX_SKEW_MS) throw new HttpError(422, "SCAN_IN_FUTURE", "Scan time is in the future")
           if (s.scannedAt < now - MAX_AGE_MS) throw new HttpError(422, "SCAN_TOO_OLD", "Scan is older than 30 days")
-          const outcome = performScan(store, config.lookupPepper, {
+          const outcome = await performScan(store, config.lookupPepper, {
             payload: s.payload, code: s.code, position: s.position, channel: "PWA",
             scannerRole: s.scannerRole, at: s.scannedAt, wasOffline: true, clientId: s.clientId,
           })
@@ -122,10 +129,7 @@ export function publicRoutes(route: Route, store: Store, config: Config): void {
           if (e instanceof HttpError) return { clientId: s.clientId, ok: false as const, error: { code: e.code, message: e.message } }
           throw e
         }
-      })
-      return { results }
-    },
-  })
+  }
 
   /* ---------- reports ---------- */
 
@@ -140,9 +144,9 @@ export function publicRoutes(route: Route, store: Store, config: Config): void {
       contact: z.string().trim().max(200).optional(),
     }),
     response: z.object({ id: z.string() }),
-    handler: ({ body }) => {
-      if (body.scanId && !store.scanExists(body.scanId)) throw new HttpError(400, "UNKNOWN_SCAN", "That scan does not exist")
-      const id = store.insertReport({
+    handler: async ({ body }) => {
+      if (body.scanId && !(await store.scanExists(body.scanId))) throw new HttpError(400, "UNKNOWN_SCAN", "That scan does not exist")
+      const id = await store.insertReport({
         scanId: body.scanId, description: body.description, shopName: body.shopName,
         lat: body.position?.lat, lng: body.position?.lng, contact: body.contact,
       })
@@ -162,7 +166,7 @@ export function publicRoutes(route: Route, store: Store, config: Config): void {
       // an attacker elsewhere cannot lock a real user out). Counts failures only.
       const attemptKey = `${req.ip}|${body.email.toLowerCase()}`
       if (loginFailures.blocked(attemptKey)) throw new HttpError(429, "RATE_LIMITED", "Too many failed sign-ins. Wait 15 minutes and try again.")
-      const u = store.userByEmail(body.email)
+      const u = await store.userByEmail(body.email)
       // Always hash-compare, so a wrong email takes as long as a wrong password.
       dummyHash ??= hashPassword("not-a-real-password")
       const ok = await verifyPassword(body.password, u?.password_hash ?? (await dummyHash))
