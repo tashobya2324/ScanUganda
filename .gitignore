@@ -22,3 +22,6 @@ logs/
 coverage/
 data/
 !.env.example
+
+# Wrangler local state
+.wrangler/

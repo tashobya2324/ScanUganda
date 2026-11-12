@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "scanuganda",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  // Address of the API (no trailing slash), e.g. "https://scanuganda-api.example.com".
+  // Set it in the Cloudflare dashboard (Settings > Variables); keep_vars stops a
+  // deploy from wiping it.
+  "vars": { "API_ORIGIN": "" },
+  "keep_vars": true
+}
