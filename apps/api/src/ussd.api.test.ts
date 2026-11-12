@@ -1,7 +1,7 @@
 import { generateLookupCode } from "@scanuganda/core"
 import { beforeAll, describe, expect, it } from "vitest"
 import { buildApp } from "./app.ts"
-import { USERS, makeTestApp } from "./test-helpers.ts"
+import { USERS, makeTestApp, testable } from "./test-helpers.ts"
 
 type T = Awaited<ReturnType<typeof makeTestApp>>
 let t: T
@@ -144,8 +144,8 @@ describe("reports", () => {
     expect(await say("2")).toBe("CON Describe the problem in a few words.\n0. Back")
     expect(await say("2*too short")).toBe("CON Please write at least 10 characters.\nDescribe the problem in a few words.\n0. Back")
     expect(await say("2*too short*Seal was open and the tin looked different")).toBe("END Thank you. We have your report.")
-    const row = t.store.db.prepare("SELECT description FROM reports ORDER BY created_at DESC LIMIT 1").get() as { description: string }
-    expect(row.description).toBe("[USSD] Seal was open and the tin looked different")
+    const [row] = await t.sql<{ description: string }>("SELECT description FROM reports ORDER BY created_at DESC LIMIT 1")
+    expect(row!.description).toBe("[USSD] Seal was open and the tin looked different")
   })
 })
 
@@ -162,7 +162,7 @@ describe("abuse and failure", () => {
 
   it("a failure inside the server becomes a polite END screen, never an error page", async () => {
     const broken = await makeTestApp()
-    broken.store.db.close()
+    await broken.store.close()
     const res = await dial(`1*${broken.code("E1", 0).lookupCode}*0`, freshPhone(), broken.app)
     expect(res.statusCode).toBe(200)
     expect(res.body).toBe("END Sorry, something went wrong. Please try again.")
@@ -206,7 +206,7 @@ describe("the app wires channels correctly", () => {
   })
 
   it("buildApp accepts a custom SMS sender", async () => {
-    const app = await buildApp({ store: t.store, keys: t.keys, config: t.config, sms: { send: async () => {} } })
+    const app = testable(buildApp({ store: t.store, keys: t.keys, config: t.config, sms: { send: async () => {} } }))
     expect((await app.inject({ method: "GET", url: "/health" })).statusCode).toBe(200)
   })
 })

@@ -70,7 +70,8 @@ async function waitFor(url, label) {
 async function startStack() {
   const secret = () => randomBytes(32).toString("hex")
   const apiEnv = {
-    API_PORT: "3198", DB_PATH: path.join(tmp, "e2e.db"), KEYS_DIR: path.join(tmp, "keys"),
+    API_PORT: "3198", PGLITE_DIR: path.join(tmp, "pg"), KEYS_DIR: path.join(tmp, "keys"),
+    DATABASE_URL: "", KEY_ENCRYPTION_KEY: "", // never a real database from a developer's .env
     TOKEN_SECRET: secret(), LOOKUP_PEPPER: secret(), SEED_PASSWORD: PASSWORD,
     RATE_LIMIT_MAX: "100000", VERIFY_RATE_LIMIT: "100000", LOGIN_RATE_LIMIT: "100000",
   }

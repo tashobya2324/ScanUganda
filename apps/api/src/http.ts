@@ -1,5 +1,6 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify"
+import type { Context, Hono } from "hono"
 import { z } from "zod"
+import type { RateLimiter } from "./limiter.ts"
 
 export type Role = "admin" | "manufacturer" | "inspector"
 
@@ -28,7 +29,7 @@ export const notFound = (what: string) => new HttpError(404, "NOT_FOUND", `${wha
 export const forbidden = (message = "You do not have access to this") =>
   new HttpError(403, "FORBIDDEN", message)
 
-/** Reply wrapper so a handler can set status or send raw (CSV) bodies. */
+/** Reply wrapper so a handler can set status or send raw (CSV, USSD text) bodies. */
 export interface Raw {
   __raw: true
   status?: number
@@ -38,13 +39,29 @@ export interface Raw {
 }
 export const raw = (r: Omit<Raw, "__raw">): Raw => ({ __raw: true, ...r })
 
+/** What the API logs. Never a query string, a header or a phone number. */
+export interface Log {
+  info(entry: Record<string, unknown>): void
+  error(err: unknown): void
+}
+
+/** The parts of a request a handler may use (no framework types leak into routes). */
+export interface RequestInfo {
+  /** Client address (see `clientIp` in app.ts for how it is found). */
+  ip: string
+  header(name: string): string | undefined
+  /** The raw query string values, before any route schema. */
+  query(name: string): string | undefined
+  log: Log
+}
+
 interface Ctx<B, Q, P> {
   body: B
   query: Q
   params: P
   /** null on public routes when nobody is signed in. */
   user: AuthUser | null
-  req: FastifyRequest
+  req: RequestInfo
 }
 
 type Schema = z.ZodType<any>
@@ -61,7 +78,7 @@ export interface RouteSpec<B extends Schema, Q extends Schema, P extends Schema>
   params?: P
   /** Declared success body, used for the OpenAPI document and (in tests) to check responses. */
   response?: Schema
-  /** Per-route limit, requests per minute per IP. */
+  /** Per-route limit, requests per minute per IP. Routes without one share the global limit. */
   rateLimit?: number
   status?: number
   handler: (c: Ctx<z.infer<B>, z.infer<Q>, z.infer<P>>) => Promise<unknown> | unknown
@@ -72,10 +89,32 @@ export interface Registry {
 }
 
 export interface RouteDeps {
-  app: FastifyInstance
+  app: Hono
   registry: Registry
-  authenticate: (req: FastifyRequest) => Promise<AuthUser | null>
+  authenticate: (c: Context) => Promise<AuthUser | null>
+  requestInfo: (c: Context) => RequestInfo
+  limiter: RateLimiter
+  /** Requests per minute per IP for routes without their own `rateLimit`. */
+  globalLimit: number
   validateResponses: boolean
+}
+
+const FORM = "application/x-www-form-urlencoded"
+
+/** JSON or form body (aggregators post USSD and SMS callbacks as forms). Undefined when empty. */
+async function readBody(c: Context): Promise<unknown> {
+  const type = c.req.header("content-type") ?? ""
+  const text = await c.req.text()
+  if (text === "") return undefined
+  if (type.startsWith(FORM)) return Object.fromEntries(new URLSearchParams(text))
+  if (type.includes("json")) {
+    try {
+      return JSON.parse(text)
+    } catch {
+      throw new HttpError(400, "BAD_REQUEST", "Body is not valid JSON")
+    }
+  }
+  throw new HttpError(415, "BAD_REQUEST", `Unsupported content type: ${type || "none"}`)
 }
 
 export function makeRoute(deps: RouteDeps) {
@@ -85,44 +124,48 @@ export function makeRoute(deps: RouteDeps) {
     P extends Schema = z.ZodUndefined,
   >(spec: RouteSpec<B, Q, P>): void {
     deps.registry.specs.push(spec as unknown as RouteSpec<Schema, Schema, Schema>)
-    deps.app.route({
-      method: spec.method,
-      url: spec.url,
-      config: spec.rateLimit ? { rateLimit: { max: spec.rateLimit, timeWindow: "1 minute" } } : {},
-      handler: async (req: FastifyRequest, reply: FastifyReply) => {
-        const user = await deps.authenticate(req)
-        if (Array.isArray(spec.auth)) {
-          if (!user) throw new HttpError(401, "UNAUTHENTICATED", "Sign in to continue")
-          if (!spec.auth.includes(user.role)) throw forbidden()
+    const bucket = spec.rateLimit ? `${spec.method} ${spec.url}` : "global"
+    const max = spec.rateLimit ?? deps.globalLimit
+
+    deps.app.on(spec.method, spec.url, async (c) => {
+      const req = deps.requestInfo(c)
+      const limited = deps.limiter.hit(`${bucket}|${req.ip}`, max)
+      if (limited) {
+        c.header("Retry-After", String(limited.retryAfterS))
+        throw new HttpError(429, "RATE_LIMITED", `Too many requests. Try again in ${limited.retryAfterS} seconds.`)
+      }
+
+      const user = await deps.authenticate(c)
+      if (Array.isArray(spec.auth)) {
+        if (!user) throw new HttpError(401, "UNAUTHENTICATED", "Sign in to continue")
+        if (!spec.auth.includes(user.role)) throw forbidden()
+      }
+      const parse = <S extends Schema>(s: S | undefined, value: unknown, where: string) => {
+        if (!s) return undefined
+        const r = s.safeParse(value)
+        if (!r.success) {
+          throw badRequest("VALIDATION_FAILED", `Invalid ${where}`, z.flattenError(r.error as z.ZodError))
         }
-        const parse = <S extends Schema>(s: S | undefined, value: unknown, where: string) => {
-          if (!s) return undefined
-          const r = s.safeParse(value)
-          if (!r.success) {
-            throw badRequest("VALIDATION_FAILED", `Invalid ${where}`, z.flattenError(r.error as z.ZodError))
-          }
-          return r.data
+        return r.data
+      }
+      const out = await spec.handler({
+        body: parse(spec.body, spec.body ? await readBody(c) : undefined, "body") as z.infer<B>,
+        query: parse(spec.query, c.req.query(), "query") as z.infer<Q>,
+        params: parse(spec.params, c.req.param(), "path") as z.infer<P>,
+        user,
+        req,
+      })
+      if (out && typeof out === "object" && (out as Raw).__raw) {
+        const r = out as Raw
+        return c.body(r.body, (r.status ?? 200) as 200, { ...r.headers, "Content-Type": r.contentType })
+      }
+      if (deps.validateResponses && spec.response) {
+        const check = spec.response.safeParse(out)
+        if (!check.success) {
+          throw new Error(`Response for ${spec.method} ${spec.url} drifted from its schema: ${check.error.message}`)
         }
-        const out = await spec.handler({
-          body: parse(spec.body, req.body, "body") as z.infer<B>,
-          query: parse(spec.query, req.query, "query") as z.infer<Q>,
-          params: parse(spec.params, req.params, "path") as z.infer<P>,
-          user,
-          req,
-        })
-        if (out && typeof out === "object" && (out as Raw).__raw) {
-          const r = out as Raw
-          for (const [k, v] of Object.entries(r.headers ?? {})) reply.header(k, v)
-          return reply.status(r.status ?? 200).type(r.contentType).send(r.body)
-        }
-        if (deps.validateResponses && spec.response) {
-          const check = spec.response.safeParse(out)
-          if (!check.success) {
-            throw new Error(`Response for ${spec.method} ${spec.url} drifted from its schema: ${check.error.message}`)
-          }
-        }
-        return reply.status(spec.status ?? 200).send(out ?? { ok: true })
-      },
+      }
+      return c.json(out ?? { ok: true }, (spec.status ?? 200) as 200)
     })
   }
 }

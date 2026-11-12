@@ -6,12 +6,12 @@ A step-by-step guide to starting the project, trying every part of it, and putti
 
 | Tool | Version | Check |
 |---|---|---|
-| Node.js | 24 or newer (the API uses the built-in `node:sqlite`) | `node -v` |
+| Node.js | 22 or newer | `node -v` |
 | pnpm | 10 | `pnpm -v` (install: `npm i -g pnpm`) |
 | Git | any | `git -v` |
 | A browser | Chrome or Edge recommended | |
 
-Versions are pinned in `.mise.toml`. Nothing else to install: the database is a file, and there are no external services.
+Versions are pinned in `.mise.toml`. Nothing else to install: the database (Postgres, as PGlite) runs inside the API process and keeps its data in `apps/api/data/pglite/`, and there are no external services.
 
 ## 2. Start it
 
@@ -104,7 +104,7 @@ Open http://localhost:8443/app/ and make the window narrow (or press `F12`, then
 | Symptom | Fix |
 |---|---|
 | Page is blank, console says `__BUNDLED_DEV__ is not defined` | Stop and restart `pnpm dev` after any `pnpm install`. |
-| `node:sqlite` error or "unexpected experimental" | Node is older than 24. Run `node -v` and upgrade. |
+| API stops at start with a PGlite or database error | Another API process (or `pnpm seed`) holds `apps/api/data/pglite`: only one at a time. Stop it. To start over, stop everything and delete `apps/api/data/`. |
 | Port already in use | Another copy is running. Stop it, or set `PORT=8450` before `pnpm dev`. |
 | Camera does not start | Needs https or `localhost`; allow camera access in the browser's site settings; or type the code instead. |
 | No **Download the app** button | It is hidden once installed. In a normal tab it appears on Home and Settings; some browsers (Firefox, Safari) show the manual steps instead of a one-tap install. |

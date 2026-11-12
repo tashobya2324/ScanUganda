@@ -8,7 +8,7 @@ Related: [decisions/2026-11-08-hardening-and-performance.md](decisions/2026-11-0
 
 | Asset | Why it matters | Where it lives |
 |---|---|---|
-| Signing private keys | Whoever holds one can print codes that verify as genuine. | One file per key in `KEYS_DIR` on the API host. Never in the database or git. |
+| Signing private keys | Whoever holds one can print codes that verify as genuine. | Either one file per key in `KEYS_DIR` on the API host, or (Cloudflare Workers, and whenever `KEY_ENCRYPTION_KEY` is set) in the database **encrypted** with AES-256-GCM under `KEY_ENCRYPTION_KEY`, which is held only in the host's secret store. Never in git, never in the database in the clear. |
 | 12-digit lookup codes | Typed by shoppers; guessing them could reveal real codes. | Only as an HMAC (with a server pepper) in the database. Shown once at generation. |
 | Staff accounts and tokens | Control recalls, codes and alerts. | scrypt password hashes; 12-hour signed tokens. |
 | Scan records | Show where people were. | Database. Phone numbers are never stored with scans. |
@@ -45,13 +45,14 @@ Already in place from earlier phases: input validation on every route (zod), rol
 
 ## Before real users (checklist)
 
-- [ ] New `TOKEN_SECRET`, `LOOKUP_PEPPER` and `CHANNEL_SECRET`, long and random, set in the host's settings, never in git. Changing `LOOKUP_PEPPER` later breaks every typed code, so choose once and back it up.
+- [ ] New `TOKEN_SECRET`, `LOOKUP_PEPPER`, `KEY_ENCRYPTION_KEY` and `CHANNEL_SECRET`, long and random, set in the host's settings, never in git. Changing `LOOKUP_PEPPER` later breaks every typed code, so choose once and back it up.
 - [ ] **Delete the demo users and sample data.** The seed creates accounts with a known password (`demo-password-1`). Never seed a deployed system.
 - [ ] https everywhere (camera, location and the service worker need it). Set `TRUST_PROXY=true` only if behind a proxy you control.
 - [ ] `CORS_ORIGINS` set to the real console and app addresses only.
-- [ ] Back up `data/` (database) and `KEYS_DIR` separately and test a restore. Losing the keys means no new codes can be generated for existing batches (old codes still verify).
+- [ ] Back up the database and the keys (`KEYS_DIR`, or `KEY_ENCRYPTION_KEY`) separately and test a restore. Losing the keys means no new codes can be generated for existing batches (old codes still verify).
 - [ ] Decide who may see scan locations and how long records are kept; update the privacy text.
 - [ ] Run `pnpm audit`, `pnpm test`, `pnpm e2e` and `pnpm load` against the deployed build.
+- [ ] On Cloudflare Workers the API's rate limits are counted per isolate: add a Cloudflare rate-limiting rule for `/v1/verify` and `/v1/auth/login` (see DEPLOY.md §5).
 - [ ] Restrict who holds admin accounts; give manufacturers their own accounts, never the admin one.
 
 ## How a signing key is rotated

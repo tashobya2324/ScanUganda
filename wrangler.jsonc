@@ -11,5 +11,8 @@
   // Set it in the Cloudflare dashboard (Settings > Variables); keep_vars stops a
   // deploy from wiping it.
   "vars": { "API_ORIGIN": "" },
-  "keep_vars": true
+  "keep_vars": true,
+  // When the API runs as its own Worker (apps/api, docs/DEPLOY.md), deploy that first and
+  // uncomment this; API_ORIGIN is then not needed.
+  // "services": [{ "binding": "API", "service": "scanuganda-api" }]
 }

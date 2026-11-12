@@ -9,7 +9,7 @@ import type { ScanOutcome } from "./verification.ts"
 
 export interface SmsDeps {
   regions: Region[]
-  check: (code: string, region: Region | undefined) => ScanOutcome
+  check: (code: string, region: Region | undefined) => Promise<ScanOutcome>
   allow: () => boolean
 }
 
@@ -24,12 +24,12 @@ export function parseSms(text: string, regions: Region[]): { code: string | null
   return { code, region }
 }
 
-export function smsReply(text: string, deps: SmsDeps): string {
+export async function smsReply(text: string, deps: SmsDeps): Promise<string> {
   const { code, region } = parseSms(text, deps.regions)
   if (!code) return toGsm(HELP)
   if (!isValidLookupCode(code)) return toGsm("That code does not look right. Check each digit and send it again.")
   if (!deps.allow()) return toGsm("Too many checks from this number. Please try again later.")
-  return composeVerdict(deps.check(code, region))
+  return composeVerdict(await deps.check(code, region))
 }
 
 /* ---------- sending the reply ---------- */

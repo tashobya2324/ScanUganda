@@ -115,6 +115,9 @@
 | P7-2 | Demo script, demo data reset, backup recording | - | TODO | M | P7-1 | |
 | P7-3 | Final report mapped to the proposal; user guide | - | TODO | L | P7-1 | |
 | P7-4 | Two clean demo run-throughs on a phone | - | TODO | S | P7-2 | |
+| P7-5 | Move the database from SQLite to Postgres (async data layer; PGlite for dev and tests, `DATABASE_URL` for a hosted server) | Ethan (agent) | REVIEW | L | - | Built and tested, not committed. Decision note 2026-11-12-postgres-hono-separate-deploys. Not tested against Neon or Hyperdrive. |
+| P7-6 | Replace Fastify with Hono so the API runs on Cloudflare Workers or any Node host | Ethan (agent) | REVIEW | L | P7-5 | Built and tested, not committed. Same routes, schemas, error format and limits. Worker checked in `wrangler dev` only, not deployed. |
+| P7-7 | Deploy each part on its own: API, web system, mobile app (configurable API address, per-app deploy config, `docs/DEPLOY.md`) | Ethan (agent) | REVIEW | M | P7-6 | Built, not committed. Feeds P7-1: the real deploy still needs the team's Cloudflare and Neon accounts. |
 
 ---
 
@@ -134,6 +137,10 @@
 ## Activity log
 
 Newest first. One line per update: `date · who · task ID · what changed`. Anyone changing a status adds a line here.
+
+- 2026-11-12 · Ethan (agent) · P7-5, P7-6, P7-7 · REVIEW. API now Hono + PostgreSQL (PGlite locally, `DATABASE_URL` for a server), runs on Node or as a Cloudflare Worker; signing keys can be sealed in the database (`KEY_ENCRYPTION_KEY`). Each part has its own deploy config; guide in `docs/DEPLOY.md`. Combined-site proxy (894b759) can reach the API Worker by service binding. Tests: API 162, core 87, console 49, PWA 37, `pnpm e2e` 32/32; the Worker passed 16 flow checks in `wrangler dev`. Found: the API Worker needs Workers Paid (sign-in ~27 ms CPU, free plan allows 10 ms). Not committed; not deployed.
+
+- 2026-11-12 · Ethan (agent) · P7-5, P7-6, P7-7 · Added and claimed at the team's request: Postgres instead of SQLite, Hono instead of Fastify (Cloudflare Workers can run it), and separate deploys for API, web system and mobile app.
 
 - 2026-11-08 · Tashobya · P4 polish · App now looks and feels like an installed app: green header, raised Scan button in a five-item bottom bar, no text selection on chrome, phone-sized frame on wide screens. Home and Settings carry a clear "Download the app" card (one-tap install where the browser allows; written steps for iPhone Safari and others). Added `docs/RUNNING.md`. PWA 37 tests, `pnpm e2e` 32/32. Not committed; install on a real phone still unverified (TEAM-INPUT #1, #2).
 

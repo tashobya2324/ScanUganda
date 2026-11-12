@@ -223,7 +223,7 @@ describe("admin", () => {
   it("creates a manufacturer with a signing key and a user for it", async () => {
     const m = await call("POST", "/v1/manufacturers", USERS.admin, { name: "Lake Honey Co" })
     expect(m.statusCode).toBe(201)
-    expect(t.keys.getPrivate(m.json().keyId)).toBeTruthy()
+    expect(await t.keys.getPrivate(m.json().keyId, t.store)).toBeTruthy()
     expect((await call("POST", "/v1/manufacturers", USERS.admin, { name: "Lake Honey Co" })).statusCode).toBe(409)
     const u = await call("POST", "/v1/users", USERS.admin, { email: "honey@scanuganda.test", name: "Honey QA", password: "a-long-password", role: "manufacturer", manufacturerId: m.json().id })
     expect(u.statusCode).toBe(201)

@@ -1,18 +1,22 @@
+// The API as a Node server: `pnpm dev` locally, or `pnpm start` on any Node host
+// (Render, Railway, Fly.io, a VPS, Cloudflare Containers). For Cloudflare Workers see worker.ts.
+import { serve } from "@hono/node-server"
 import { buildApp } from "./app.ts"
 import { loadConfig } from "./config.ts"
-import { openDb } from "./db.ts"
-import { FileKeyStore } from "./keys.ts"
-import { Store } from "./store.ts"
+import { loadDotEnv, openNodeDeps } from "./node-runtime.ts"
 
-try {
-  process.loadEnvFile?.(".env")
-} catch {
-  // no .env file: rely on the real environment
-}
-
+loadDotEnv()
 const config = loadConfig()
-const store = new Store(openDb(config.dbPath))
-const app = await buildApp({ store, keys: new FileKeyStore(config.keysDir), config, logger: true })
+const { store, keys, where } = await openNodeDeps(config)
+const app = buildApp({ store, keys, config, logger: true })
 
-await app.listen({ port: config.port, host: "0.0.0.0" })
-app.log.info(`API docs at http://localhost:${config.port}/docs`)
+const server = serve({ fetch: app.fetch, port: config.port, hostname: "0.0.0.0" }, () => {
+  console.log(`API on http://localhost:${config.port} (docs at /docs), database: ${where}`)
+})
+
+const stop = () => {
+  server.close()
+  void store.close().finally(() => process.exit(0))
+}
+process.on("SIGINT", stop)
+process.on("SIGTERM", stop)

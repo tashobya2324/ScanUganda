@@ -5,22 +5,22 @@ import { composeVerdict, toGsm, truncate } from "./channel-text.ts"
 import { SlidingWindow } from "./limiter.ts"
 import { AfricasTalkingSms, parseSms } from "./sms.ts"
 import { loadConfig } from "./config.ts"
-import { makeTestApp } from "./test-helpers.ts"
+import { makeTestApp, testable, type TestApp } from "./test-helpers.ts"
 
 type T = Awaited<ReturnType<typeof makeTestApp>>
 let t: T
-let app: Awaited<ReturnType<typeof buildApp>>
+let app: TestApp
 const sent: { to: string; message: string }[] = []
 let failSend = false
 
 beforeAll(async () => {
   t = await makeTestApp()
-  app = await buildApp({
+  app = testable(buildApp({
     store: t.store,
     keys: t.keys,
     config: t.config,
     sms: { send: async (to, message) => { if (failSend) throw new Error("provider down"); sent.push({ to, message }) } },
-  })
+  }))
 })
 
 let n = 0

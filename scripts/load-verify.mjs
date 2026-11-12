@@ -34,7 +34,9 @@ const PASSWORD = "load-test-password-1"
 const env = {
   ...process.env,
   API_PORT: String(PORT),
-  DB_PATH: path.join(dir, "load.db"),
+  PGLITE_DIR: path.join(dir, "pg"),
+  DATABASE_URL: "", // never a real database from a developer's .env
+  KEY_ENCRYPTION_KEY: "",
   KEYS_DIR: path.join(dir, "keys"),
   TOKEN_SECRET: secret(),
   LOOKUP_PEPPER: secret(),

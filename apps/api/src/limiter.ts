@@ -46,3 +46,36 @@ export class SlidingWindow {
     for (const [k, v] of this.hits) if (v.every((t) => now - t >= this.windowMs)) this.hits.delete(k)
   }
 }
+
+/** Per-address request limit for the HTTP API. */
+export interface RateLimiter {
+  /** Counts one request. Returns null if allowed, or how long to wait. */
+  hit(key: string, maxPerWindow: number, now?: number): { retryAfterS: number } | null
+}
+
+/**
+ * Fixed one-minute windows, in memory. One server process (Node) shares one count; on
+ * Cloudflare Workers each isolate keeps its own, so the limit there is per isolate and
+ * an attacker spread across many is limited less. See docs/DEPLOY.md for the stricter
+ * option (Cloudflare's rate-limiting rules in front of the Worker).
+ */
+export class FixedWindowLimiter implements RateLimiter {
+  private windows = new Map<string, { start: number; count: number }>()
+  constructor(private windowMs = 60_000) {}
+
+  hit(key: string, max: number, now = Date.now()): { retryAfterS: number } | null {
+    let w = this.windows.get(key)
+    if (!w || now - w.start >= this.windowMs) {
+      w = { start: now, count: 0 }
+      this.windows.set(key, w)
+      if (this.windows.size > 50_000) this.sweep(now)
+    }
+    w.count++
+    if (w.count <= max) return null
+    return { retryAfterS: Math.max(1, Math.ceil((w.start + this.windowMs - now) / 1000)) }
+  }
+
+  private sweep(now: number) {
+    for (const [k, w] of this.windows) if (now - w.start >= this.windowMs) this.windows.delete(k)
+  }
+}

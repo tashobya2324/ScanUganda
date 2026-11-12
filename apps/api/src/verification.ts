@@ -53,15 +53,15 @@ export interface ScanOutcome {
  * Resolves records, runs the core engine, stores the scan and raises alerts.
  * Shared by HTTP verify, offline sync and USSD so every channel answers alike.
  */
-export function performScan(store: Store, pepper: string, req: ScanRequest): ScanOutcome {
+export async function performScan(store: Store, pepper: string, req: ScanRequest): Promise<ScanOutcome> {
   if (req.clientId) {
-    const prior = store.scanByClientId(req.clientId)
+    const prior = await store.scanByClientId(req.clientId)
     if (prior) {
       return {
         scanId: prior.id,
         verdict: prior.verdict,
         reasons: prior.reasons,
-        product: productFor(store, prior.batchId, prior.reasons),
+        product: await productFor(store, prior.batchId, prior.reasons),
         duplicate: true,
       }
     }
@@ -76,33 +76,33 @@ export function performScan(store: Store, pepper: string, req: ScanRequest): Sca
     // Not shaped like our codes at all (a website QR, a barcode): say so without recording a scan.
     if (!parsed) throw new HttpError(422, "NOT_A_SCANUGANDA_CODE", "This is not a ScanUganda code, so it cannot be checked.")
     claimed = { batchId: parsed.batchId, serial: parsed.serial }
-    batch = store.batch(parsed.batchId) ?? null
-    unit = batch ? (store.unit(batch.id, parsed.serial) ?? null) : null
+    batch = (await store.batch(parsed.batchId)) ?? null
+    unit = batch ? ((await store.unit(batch.id, parsed.serial)) ?? null) : null
   } else if (req.code !== undefined) {
     if (!isValidLookupCode(req.code)) {
       throw new HttpError(400, "INVALID_CODE_FORMAT", "The code must be 12 digits. Check it and try again.")
     }
-    unit = store.unitByLookupHash(hashLookupCode(req.code, pepper)) ?? null
-    batch = unit ? (store.batch(unit.batchId) ?? null) : null
+    unit = (await store.unitByLookupHash(hashLookupCode(req.code, pepper))) ?? null
+    batch = unit ? ((await store.batch(unit.batchId)) ?? null) : null
     if (unit) claimed = { batchId: unit.batchId, serial: unit.serial }
   } else {
     throw new HttpError(400, "VALIDATION_FAILED", "Send either payload or code")
   }
 
-  const priorScans = store.priorScans(claimed?.batchId ?? null, claimed?.serial ?? null)
+  const priorScans = await store.priorScans(claimed?.batchId ?? null, claimed?.serial ?? null)
   const result = verifyScan({
     credential: req.payload !== undefined ? { kind: "signed", payload: req.payload } : { kind: "lookup" },
     batch,
     unit,
-    publicKeys: store.publicKeys(),
+    publicKeys: await store.publicKeys(),
     verifySignature: verifyPayloadNative,
-    regions: store.regions(),
+    regions: await store.regions(),
     priorScans,
     context: { at: req.at, channel: req.channel, scannerRole: req.scannerRole, position: req.position },
   })
 
-  const scanId = store.tx(() => {
-    const id = store.insertScan({
+  const scanId = await store.tx(async (s) => {
+    const id = await s.insertScan({
       batchId: claimed?.batchId ?? null,
       serial: claimed?.serial ?? null,
       scannedAt: req.at,
@@ -114,7 +114,7 @@ export function performScan(store: Store, pepper: string, req: ScanRequest): Sca
       wasOffline: req.wasOffline,
       clientId: req.clientId,
     })
-    for (const a of result.alerts) store.insertAlert(id, batch?.id ?? null, a, { batchId: claimed?.batchId ?? null, serial: claimed?.serial ?? null })
+    for (const a of result.alerts) await s.insertAlert(id, batch?.id ?? null, a, { batchId: claimed?.batchId ?? null, serial: claimed?.serial ?? null })
     return id
   })
 
@@ -122,13 +122,13 @@ export function performScan(store: Store, pepper: string, req: ScanRequest): Sca
     scanId,
     verdict: result.verdict,
     reasons: result.reasons,
-    product: productFor(store, batch?.id ?? null, result.reasons),
+    product: await productFor(store, batch?.id ?? null, result.reasons),
     duplicate: false,
   }
 }
 
-function productFor(store: Store, batchId: string | null, reasons: Reason[]): ProductInfo | null {
+async function productFor(store: Store, batchId: string | null, reasons: Reason[]): Promise<ProductInfo | null> {
   if (!batchId) return null
   if (reasons.some((r) => r.code === "INVALID_SIGNATURE" || r.code === "UNKNOWN_CODE")) return null
-  return store.productInfo(batchId) ?? null
+  return (await store.productInfo(batchId)) ?? null
 }
