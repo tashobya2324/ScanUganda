@@ -1,0 +1,27 @@
+# Free, always-on API on Render (Blueprint). See docs/DEPLOY-FREE.md.
+# The database is a free Supabase (or Neon) Postgres: paste its pooler connection string as DATABASE_URL in the
+# Render dashboard when prompted. Signing keys are kept encrypted in that database, so the
+# service needs no disk.
+services:
+  - type: web
+    name: scanuganda-api
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    startCommand: pnpm --filter @scanuganda/api start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: DATABASE_URL
+        sync: false
+      - key: TOKEN_SECRET
+        generateValue: true
+      - key: LOOKUP_PEPPER
+        generateValue: true
+      - key: KEY_ENCRYPTION_KEY
+        generateValue: true
+      - key: TRUST_PROXY
+        value: "true"
+      - key: CORS_ORIGINS
+        value: ""

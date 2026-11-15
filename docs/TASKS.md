@@ -138,6 +138,7 @@
 
 Newest first. One line per update: `date · who · task ID · what changed`. Anyone changing a status adds a line here.
 
+- 2026-11-15 · Tashobya (agent) · P7-5 · Added `render.yaml` and `docs/DEPLOY-FREE.md` (free always-on route: Neon Postgres + Render Node host + Cloudflare site via `API_ORIGIN`); raised API test timeouts for low-memory machines. Not deployed (needs the team's Neon/Render accounts). Not committed.
 - 2026-11-12 · Ethan (agent) · P7-5, P7-6, P7-7 · REVIEW. API now Hono + PostgreSQL (PGlite locally, `DATABASE_URL` for a server), runs on Node or as a Cloudflare Worker; signing keys can be sealed in the database (`KEY_ENCRYPTION_KEY`). Each part has its own deploy config; guide in `docs/DEPLOY.md`. Combined-site proxy (894b759) can reach the API Worker by service binding. Tests: API 162, core 87, console 49, PWA 37, `pnpm e2e` 32/32; the Worker passed 16 flow checks in `wrangler dev`. Found: the API Worker needs Workers Paid (sign-in ~27 ms CPU, free plan allows 10 ms). Not committed; not deployed.
 
 - 2026-11-12 · Ethan (agent) · P7-5, P7-6, P7-7 · Added and claimed at the team's request: Postgres instead of SQLite, Hono instead of Fastify (Cloudflare Workers can run it), and separate deploys for API, web system and mobile app.
