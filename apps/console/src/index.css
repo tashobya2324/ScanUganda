@@ -81,6 +81,24 @@
   height: 34px !important;
   line-height: 34px !important;
 }
+.leaflet-control-layers {
+  border: none !important;
+  box-shadow: var(--shadow-float) !important;
+  border-radius: 10px !important;
+  font-family: var(--font-sans);
+}
+.leaflet-control-layers-toggle {
+  width: 36px !important;
+  height: 36px !important;
+  background-size: 20px 20px !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316181a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m12 3 9 5-9 5-9-5 9-5Z'/><path d='m3 13 9 5 9-5'/></svg>") !important;
+}
+.leaflet-control-layers-expanded {
+  padding: 8px 12px !important;
+  font-size: 13px;
+}
 .leaflet-control-attribution {
   background: rgb(255 255 255 / 0.8) !important;
   font-size: 10px !important;
