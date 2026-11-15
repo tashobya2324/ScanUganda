@@ -64,6 +64,7 @@ function ScanMap({ scans, regions }: { scans: Scan[]; regions: Region[] }) {
       center: UGANDA,
       zoom: 7,
       minZoom: 6,
+      maxZoom: 16,
       maxBounds: [[-3.2, 28.0], [5.2, 36.5]],
       maxBoundsViscosity: 0.8,
       scrollWheelZoom: false,
@@ -73,11 +74,13 @@ function ScanMap({ scans, regions }: { scans: Scan[]; regions: Region[] }) {
     // Scroll wheel zooms only after the map is clicked, so scrolling the page never gets stuck on it.
     m.on("click", () => m.scrollWheelZoom.enable())
     m.on("mouseout", () => m.scrollWheelZoom.disable())
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-      subdomains: "abcd",
-      maxZoom: 18,
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
+    // Esri's light grey canvas: a quiet basemap that needs no API key, with place names on top.
+    const esri = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas"
+    L.tileLayer(`${esri}/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}`, {
+      maxZoom: 16,
+      attribution: "Tiles © Esri · Esri, HERE, Garmin, © OpenStreetMap contributors",
     }).addTo(m)
+    L.tileLayer(`${esri}/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}`, { maxZoom: 16 }).addTo(m)
     layer.current = L.layerGroup().addTo(m)
     map.current = m
     return () => {

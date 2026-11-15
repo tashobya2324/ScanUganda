@@ -63,7 +63,7 @@
   }
 }
 
-/* Map: light basemap (CARTO Positron) so verdict markers carry the colour */
+/* Map: light basemap (Esri light grey canvas, no key) so verdict markers carry the colour */
 .leaflet-container {
   font-family: var(--font-sans);
   background: #eef0ee;
