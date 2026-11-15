@@ -64,15 +64,17 @@ export function Layout() {
             </a>
             <div className="truncate text-sm font-medium">{user?.name}</div>
             <div className="text-xs text-ink-2">{user && ROLE_LABEL[user.role]}</div>
-            <button onClick={signOut} className="mt-2 text-sm text-ink-2 underline underline-offset-2 hover:text-ink">
-              Sign out
-            </button>
+            <div className="mt-2 flex gap-3 text-sm">
+              <NavLink to="/account" className="text-ink-2 underline underline-offset-2 hover:text-ink">Password</NavLink>
+              <button onClick={signOut} className="text-ink-2 underline underline-offset-2 hover:text-ink">Sign out</button>
+            </div>
           </div>
         </div>
       </aside>
       <div className="min-w-0">
         <header className="flex items-center justify-end gap-3 border-b border-line bg-surface px-6 py-2 text-sm lg:hidden print:hidden">
           <span className="text-ink-2">{user?.name}</span>
+          <NavLink to="/account" className="underline underline-offset-2">Password</NavLink>
           <button onClick={signOut} className="underline underline-offset-2">Sign out</button>
         </header>
         <main className="mx-auto max-w-[1280px] px-6 py-8 lg:px-10">

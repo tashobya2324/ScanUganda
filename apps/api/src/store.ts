@@ -242,6 +242,9 @@ export class Store implements KeyRows {
   userByEmail(email: string): Promise<UserRow | undefined> {
     return get<UserRow>(this.q, "SELECT * FROM users WHERE email = $1", email.toLowerCase())
   }
+  async setPassword(id: string, passwordHash: string): Promise<void> {
+    await run(this.q, "UPDATE users SET password_hash = $1 WHERE id = $2", passwordHash, id)
+  }
   userById(id: string): Promise<UserRow | undefined> {
     return get<UserRow>(this.q, "SELECT * FROM users WHERE id = $1", id)
   }

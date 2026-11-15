@@ -138,6 +138,7 @@
 
 Newest first. One line per update: `date · who · task ID · what changed`. Anyone changing a status adds a line here.
 
+- 2026-11-15 · Tashobya (agent) · P6/P7 · Added: change-own-password (`POST /v1/auth/password`, console page `/account`; wrong current password is 403 so the console does not sign out; 5 new API tests), extra sample data (`pnpm --filter @scanuganda/api seed:more`: 3 makers, 7 batches, 240 scans, alerts; 1 test), map restyle (light CARTO basemap, halo markers, STOP pulse, legend, scroll-zoom on click). API type check clean; new tests and console 49 pass. Existing tokens stay valid after a password change (stateless tokens). Not committed.
 - 2026-11-15 · Tashobya (agent) · P7-5 · Added `render.yaml` and `docs/DEPLOY-FREE.md` (free always-on route: Neon Postgres + Render Node host + Cloudflare site via `API_ORIGIN`); raised API test timeouts for low-memory machines. Not deployed (needs the team's Neon/Render accounts). Not committed.
 - 2026-11-12 · Ethan (agent) · P7-5, P7-6, P7-7 · REVIEW. API now Hono + PostgreSQL (PGlite locally, `DATABASE_URL` for a server), runs on Node or as a Cloudflare Worker; signing keys can be sealed in the database (`KEY_ENCRYPTION_KEY`). Each part has its own deploy config; guide in `docs/DEPLOY.md`. Combined-site proxy (894b759) can reach the API Worker by service binding. Tests: API 162, core 87, console 49, PWA 37, `pnpm e2e` 32/32; the Worker passed 16 flow checks in `wrangler dev`. Found: the API Worker needs Workers Paid (sign-in ~27 ms CPU, free plan allows 10 ms). Not committed; not deployed.
 

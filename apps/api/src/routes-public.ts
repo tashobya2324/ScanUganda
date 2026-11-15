@@ -187,4 +187,24 @@ export function publicRoutes(route: Route, store: Store, config: Config): void {
     summary: "The signed-in user", response: UserViewSchema,
     handler: ({ user }) => ({ id: user!.id, email: user!.email, name: user!.name, role: user!.role, manufacturerId: user!.manufacturerId }),
   })
+  route({
+    method: "POST", url: "/v1/auth/password", tag: "Auth", auth: ["admin", "manufacturer", "inspector"], rateLimit: config.loginRateLimit,
+    summary: "Change your own password",
+    body: z.object({ currentPassword: z.string().min(1).max(200), newPassword: z.string().min(10).max(200) }),
+    response: z.object({ ok: z.literal(true) }),
+    handler: async ({ body, user, req }) => {
+      // Same lockout as sign-in, so a stolen session cannot be used to guess the password.
+      const attemptKey = `${req.ip}|${user!.email.toLowerCase()}`
+      if (loginFailures.blocked(attemptKey)) throw new HttpError(429, "RATE_LIMITED", "Too many failed attempts. Wait 15 minutes and try again.")
+      const u = await store.userById(user!.id)
+      // 403, not 401: a 401 makes the console treat the session as expired and sign out.
+      if (!u || !(await verifyPassword(body.currentPassword, u.password_hash))) {
+        loginFailures.record(attemptKey)
+        throw new HttpError(403, "WRONG_PASSWORD", "Your current password is not correct")
+      }
+      if (body.newPassword === body.currentPassword) throw new HttpError(400, "SAME_PASSWORD", "Choose a password different from the current one")
+      await store.setPassword(u.id, await hashPassword(body.newPassword))
+      return { ok: true as const }
+    },
+  })
 }

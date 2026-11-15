@@ -63,13 +63,80 @@
   }
 }
 
-/* Quiet map tiles so verdict markers carry the colour */
-.leaflet-tile-pane {
-  filter: grayscale(0.75) contrast(0.95) brightness(1.03);
-}
+/* Map: light basemap (CARTO Positron) so verdict markers carry the colour */
 .leaflet-container {
   font-family: var(--font-sans);
-  background: #e9e6dd;
+  background: #eef0ee;
+  outline: none;
+}
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: var(--shadow-float) !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+}
+.leaflet-control-zoom a {
+  color: var(--color-ink) !important;
+  width: 34px !important;
+  height: 34px !important;
+  line-height: 34px !important;
+}
+.leaflet-control-attribution {
+  background: rgb(255 255 255 / 0.8) !important;
+  font-size: 10px !important;
+  border-radius: 8px 0 0 0;
+}
+.leaflet-tooltip.scan-tip {
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: var(--color-ink);
+  box-shadow: var(--shadow-float);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.leaflet-tooltip.scan-tip::before {
+  display: none;
+}
+.map-region-label {
+  font: 600 11px var(--font-sans);
+  color: var(--color-accent);
+  background: rgb(255 255 255 / 0.85);
+  border: 1px solid rgb(15 92 71 / 0.2);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgb(22 24 26 / 0.08);
+}
+.map-dot {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.map-dot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--dot);
+  opacity: 0.22;
+}
+.map-dot::after {
+  content: "";
+  position: absolute;
+  inset: 28%;
+  border-radius: 999px;
+  background: var(--dot);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgb(22 24 26 / 0.35);
+}
+.map-dot.pulse::before {
+  animation: map-pulse 2s ease-out infinite;
+}
+@keyframes map-pulse {
+  0% { transform: scale(0.6); opacity: 0.5; }
+  100% { transform: scale(1.6); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

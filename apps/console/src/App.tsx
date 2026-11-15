@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router"
 import { Layout } from "./components/Layout"
 import { AuthProvider, useAuth } from "./lib/auth"
+import { Account } from "./pages/Account"
 import { Alerts } from "./pages/Alerts"
 import { BatchDetail } from "./pages/BatchDetail"
 import { Batches } from "./pages/Batches"
@@ -35,6 +36,7 @@ export function App() {
             <Route path="feed" element={<Feed />} />
             <Route path="map" element={<MapPage />} />
             <Route path="ussd" element={<Ussd />} />
+            <Route path="account" element={<Account />} />
             <Route path="team" element={<AdminOnly><Team /></AdminOnly>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

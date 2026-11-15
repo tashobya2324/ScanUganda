@@ -90,6 +90,9 @@ export const api = {
   login: (email: string, password: string) =>
     request<Session>("POST", "/v1/auth/login", { email, password }),
 
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<{ ok: true }>("POST", "/v1/auth/password", { currentPassword, newPassword }),
+
   overview: () => request<Overview>("GET", "/v1/overview"),
   regions: () => request<Region[]>("GET", "/v1/regions"),
 
