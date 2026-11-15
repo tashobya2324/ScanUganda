@@ -15,7 +15,31 @@
 const json = (status, body) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } })
 
+// A free API host (Render) sleeps when idle and answers 502/503/504 for up to a minute while it
+// wakes. Those answers come from the host's gateway, before the request reaches the app, so
+// sending the request again is safe. Retry for about 45 seconds instead of showing an error.
+const WAKING = new Set([502, 503, 504])
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+async function callApi(env, target, method, headers, body) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const forward = new Request(target, { method, headers, body, redirect: "manual" })
+      const res = await (env.API ? env.API.fetch(forward) : fetch(forward))
+      if (!WAKING.has(res.status) || attempt >= 8 || env.API) return res
+    } catch {
+      if (attempt >= 8) return json(502, { error: "unavailable", message: "The API could not be reached." })
+    }
+    await sleep(5000)
+  }
+}
+
 export default {
+  // Cron trigger (wrangler.jsonc): a small request every 10 minutes keeps the free API host awake.
+  async scheduled(_event, env, ctx) {
+    if (env.API_ORIGIN && !env.API) ctx.waitUntil(fetch(new URL("/health", env.API_ORIGIN)).catch(() => {}))
+  },
+
   async fetch(request, env) {
     const url = new URL(request.url)
 
@@ -25,12 +49,9 @@ export default {
       const headers = new Headers(request.headers)
       headers.set("x-forwarded-for", request.headers.get("cf-connecting-ip") ?? "")
       headers.set("x-forwarded-proto", "https")
-      try {
-        const forward = new Request(target, { method: request.method, headers, body: request.body, redirect: "manual" })
-        return await (env.API ? env.API.fetch(forward) : fetch(forward))
-      } catch {
-        return json(502, { error: "unavailable", message: "The API could not be reached." })
-      }
+      // Read the body once so the request can be sent again if the API is still waking up.
+      const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer()
+      return callApi(env, target, request.method, headers, body)
     }
 
     const inApp = url.pathname === "/app" || url.pathname.startsWith("/app/")

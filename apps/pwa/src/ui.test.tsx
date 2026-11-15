@@ -54,7 +54,7 @@ describe("Manual entry", () => {
     renderAt("/type", <Manual />)
     type(formatLookupCode(generateLookupCode()))
     fireEvent.click(screen.getByRole("button", { name: "Check code" }))
-    expect(await screen.findByText("elsewhere")).toBeInTheDocument() // navigated to /result/:id
+    expect(await screen.findByText("elsewhere", {}, { timeout: 4000 })).toBeInTheDocument() // navigated to /result/:id (after the loader's minimum time)
     expect(await db.historyAll()).toHaveLength(1)
   })
 

@@ -18,7 +18,20 @@ export function Result() {
     return () => { live = false }
   }, [id, version])
 
-  if (record === undefined) return <div className="min-h-dvh bg-bg" aria-busy="true" />
+  if (record === undefined) {
+    return (
+      <div className="mx-auto min-h-dvh max-w-md bg-bg" aria-busy="true">
+        <div className="flex h-72 animate-pulse flex-col items-center justify-center gap-4 bg-accent/80">
+          <div className="h-24 w-24 rounded-full bg-white/30" />
+          <div className="h-5 w-40 rounded bg-white/30" />
+        </div>
+        <div className="space-y-3 px-5 pt-6">
+          <div className="h-24 animate-pulse rounded-panel bg-line-2" />
+          <div className="h-32 animate-pulse rounded-panel bg-line-2" />
+        </div>
+      </div>
+    )
+  }
   if (record === null) {
     return (
       <div className="mx-auto min-h-dvh max-w-md space-y-4 bg-bg px-6 pt-20">

@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { Banner, Button, Icon } from "../components/ui"
+import { Checking, pause } from "../components/Checking"
 import { Scanner, type CameraState } from "../components/Scanner"
 import { useT } from "../i18n"
 import { ApiError } from "../lib/api"
@@ -22,7 +23,7 @@ export function Scan() {
       // Browsers refuse to vibrate before the user has tapped anything on the page.
       if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(40)
       try {
-        const record = await checkScan({ payload })
+        const [record] = await Promise.all([checkScan({ payload }), pause()])
         nav(`/result/${record.id}`, { replace: true })
       } catch (e) {
         setChecking(false)
@@ -37,6 +38,7 @@ export function Scan() {
 
   return (
     <div className="fixed inset-0 mx-auto max-w-md overflow-hidden bg-black text-white">
+      {checking && <Checking />}
       {!failed && <Scanner onCode={onCode} onForeign={() => setNotice(t("scan.notOurs"))} onState={setCamera} />}
 
       <header className="absolute inset-x-0 top-0 z-10 flex h-14 items-center px-2">

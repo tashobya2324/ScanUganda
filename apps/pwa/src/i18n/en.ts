@@ -54,6 +54,10 @@ export const en = {
   "manual.incomplete": "{n} of 12 digits",
 
   "checking.title": "Checking…",
+  "checking.step1": "Reading the code…",
+  "checking.step2": "Checking the signature…",
+  "checking.step3": "Matching the place…",
+  "checking.step4": "Looking at the product's journey…",
   "checking.body": "Matching the code, the place and the product's journey.",
 
   "verdict.GENUINE.word": "Genuine",

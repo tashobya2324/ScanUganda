@@ -2,6 +2,7 @@ import { formatLookupCode, isValidLookupCode, normalizeLookupCode } from "@scanu
 import { useState, type FormEvent } from "react"
 import { useNavigate } from "react-router"
 import { Banner, Button, Page, TopBar } from "../components/ui"
+import { Checking, pause } from "../components/Checking"
 import { useT } from "../i18n"
 import { ApiError } from "../lib/api"
 import { InputError, checkScan } from "../lib/scan"
@@ -23,7 +24,7 @@ export function Manual() {
     setBusy(true)
     setError(undefined)
     try {
-      const record = await checkScan({ code: digits })
+      const [record] = await Promise.all([checkScan({ code: digits }), pause()])
       nav(`/result/${record.id}`, { replace: true })
     } catch (err) {
       setBusy(false)
@@ -33,6 +34,7 @@ export function Manual() {
 
   return (
     <Page nav={false}>
+      {busy && <Checking />}
       <TopBar title={t("manual.title")} back="/" />
       <form onSubmit={submit} className="space-y-5 px-5 pt-6" noValidate>
         <p className="text-ink-2">{t("manual.help")}</p>

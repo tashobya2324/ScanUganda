@@ -7,11 +7,12 @@
     "directory": "./dist",
     "binding": "ASSETS"
   },
-  // Address of the API (no trailing slash), e.g. "https://scanuganda-api.example.com".
-  // Set it in the Cloudflare dashboard (Settings > Variables); keep_vars stops a
-  // deploy from wiping it.
-  "vars": { "API_ORIGIN": "" },
+  // Address of the API (no trailing slash). It is set here, not only in the dashboard, because a
+  // deploy replaces dashboard values for variables that this file declares.
+  "vars": { "API_ORIGIN": "https://scanuganda-api.onrender.com" },
   "keep_vars": true,
+  // Keeps the free API host from going to sleep (see worker/index.js).
+  "triggers": { "crons": ["*/10 * * * *"] },
   // When the API runs as its own Worker (apps/api, docs/DEPLOY.md), deploy that first and
   // uncomment this; API_ORIGIN is then not needed.
   // "services": [{ "binding": "API", "service": "scanuganda-api" }]
