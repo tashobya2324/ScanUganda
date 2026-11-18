@@ -1,6 +1,6 @@
 import L from "leaflet"
 import { useEffect, useRef, useState } from "react"
-import { Button, ErrorNote, PageHeader, Panel, VerdictMark, cx, verdictColor } from "../components/ui"
+import { Button, ErrorNote, PageHeader, VerdictMark, cx, verdictColor } from "../components/ui"
 import { api } from "../lib/api"
 import { timeAgo } from "../lib/format"
 import { useLoad } from "../lib/hooks"
@@ -39,7 +39,7 @@ export function MapPage() {
       <PageHeader title="Map" subtitle="Where products are being checked. Switch the map style, view a heatmap of where checks (and risky ones) cluster, or go full screen." />
       {scans.error && <ErrorNote error={scans.error} retry={scans.reload} />}
       <div ref={shell} className={cx("bg-bg", full && "flex h-screen flex-col")}>
-        <Panel flush className={cx("overflow-hidden shadow-float", full && "flex min-h-0 flex-1 flex-col rounded-none border-0")}>
+        <section className={cx("overflow-hidden rounded-panel border border-line bg-surface shadow-float", full && "flex min-h-0 flex-1 flex-col rounded-none border-0")}>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line-2 px-4 py-2.5" role="group" aria-label="Show on map">
             {(["STOP", "CHECK", "GENUINE"] as Verdict[]).map((v) => (
               <label key={v} className="inline-flex cursor-pointer items-center gap-2 text-sm">
@@ -65,7 +65,7 @@ export function MapPage() {
             <Button onClick={toggleFull}>{full ? "Exit full screen" : "Full screen"}</Button>
           </div>
           <ScanMap scans={visible} regions={regions.data ?? []} view={view} full={full} />
-        </Panel>
+        </section>
       </div>
     </>
   )

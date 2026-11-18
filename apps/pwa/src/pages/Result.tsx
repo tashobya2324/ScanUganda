@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router"
+import { ProductImage } from "../components/ProductImage"
 import { Banner, Button, Icon, VERDICT_BG, VERDICT_HEX, VerdictShape, type MarkVerdict } from "../components/ui"
 import { formatDate, useT, type StringKey } from "../i18n"
 import { db, type ScanRecord } from "../lib/db"
@@ -79,8 +80,13 @@ export function Result() {
           <div>
             <h2 className="mb-2 text-sm font-semibold text-ink-2">{t("result.product")}</h2>
             <div className="rounded-panel border border-line bg-surface p-4">
-              <div className="text-lg font-semibold">{p.productName}</div>
-              <div className="text-ink-2">{p.packSize}</div>
+              <div className="flex items-center gap-4">
+                <ProductImage url={p.imageUrl} category={p.category} name={p.productName} className="size-20 rounded-panel" />
+                <div>
+                  <div className="text-lg font-semibold">{p.productName}</div>
+                  <div className="text-ink-2">{p.packSize}</div>
+                </div>
+              </div>
               <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                 <Fact k={t("result.maker")} v={p.manufacturer} />
                 <Fact k={t("result.batch")} v={p.batchCode} mono />

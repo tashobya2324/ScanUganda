@@ -23,6 +23,8 @@ export const ProductInfoSchema = z.object({
   batchCode: z.string(),
   manufacturedAt: z.number(),
   expiresAt: z.number(),
+  /** Relative address of the product picture, or null when none was uploaded. */
+  imageUrl: z.string().nullable(),
 })
 
 export const ScanOutcomeSchema = z.object({
@@ -64,6 +66,7 @@ export const BatchViewSchema = z.object({
   recall: z.object({ at: z.number(), reason: z.string() }).nullable(),
   productName: z.string(),
   packSize: z.string(),
+  imageUrl: z.string().nullable(),
   category: CategorySchema,
   manufacturerName: z.string(),
   unitCount: z.number(),

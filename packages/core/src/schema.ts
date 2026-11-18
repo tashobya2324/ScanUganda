@@ -165,4 +165,12 @@ CREATE TABLE sealed_signing_keys (
 );
 `,
   },
+  {
+    id: "004_product_images",
+    // A small picture per product, kept as a data URL (the console shrinks it to about 30 KB
+    // first). Served by GET /v1/products/:id/image so lists and scan results stay small.
+    sql: /* sql */ `
+ALTER TABLE products ADD COLUMN image TEXT;
+`,
+  },
 ]

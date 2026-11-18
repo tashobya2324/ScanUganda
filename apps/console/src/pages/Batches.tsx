@@ -1,7 +1,9 @@
 import { useMemo, useState, type FormEvent } from "react"
 import { Link } from "react-router"
 import { Button, Chip, Empty, ErrorNote, Field, Input, Modal, PageHeader, Panel, Select, TableSkeleton, fieldError, td, th, tr } from "../components/ui"
+import { ProductImage } from "../components/ProductImage"
 import { api, type ApiError } from "../lib/api"
+import { shrinkImage } from "../lib/image"
 import { useAuth } from "../lib/auth"
 import { CATEGORY_LABELS, batchStatus, formatDate } from "../lib/format"
 import { useLoad } from "../lib/hooks"
@@ -63,7 +65,7 @@ export function Batches() {
                 {rows.map((b) => (
                   <tr key={b.id} className={tr}>
                     <td className={td}><Link to={`/batches/${b.id}`} className="font-mono font-medium text-accent hover:underline">{b.batchCode}</Link></td>
-                    <td className={td}>{b.productName}<span className="text-ink-2"> · {b.packSize}</span></td>
+                    <td className={td}><span className="flex items-center gap-3"><ProductImage url={b.imageUrl} category={b.category} name={b.productName} /><span>{b.productName}<span className="text-ink-2"> · {b.packSize}</span></span></span></td>
                     {showMaker && <td className={td}>{b.manufacturerName}</td>}
                     <td className={`${td} num text-right`}>{b.unitCount.toLocaleString()}</td>
                     <td className={`${td} num`}>{formatDate(b.expiresAt)}</td>
@@ -169,7 +171,8 @@ function NewProduct({ onClose, onCreated, showMaker }: { onClose: () => void; on
   const [packSize, setPackSize] = useState("")
   const [category, setCategory] = useState<Category>("FOOD")
   const [maker, setMaker] = useState("")
-  const [error, setError] = useState<ApiError>()
+  const [image, setImage] = useState<string>()
+  const [error, setError] = useState<ApiError | string>()
   const [busy, setBusy] = useState(false)
 
   async function submit(e: FormEvent) {
@@ -177,13 +180,17 @@ function NewProduct({ onClose, onCreated, showMaker }: { onClose: () => void; on
     setBusy(true)
     setError(undefined)
     try {
-      const { id } = await api.createProduct({ name: name.trim(), packSize: packSize.trim(), category, manufacturerId: showMaker ? maker : undefined })
+      const { id } = await api.createProduct({ name: name.trim(), packSize: packSize.trim(), category, manufacturerId: showMaker ? maker : undefined, image })
       onCreated(id)
     } catch (err) {
       setError(err as ApiError)
     } finally {
       setBusy(false)
     }
+  }
+  async function pick(file?: File) {
+    if (!file) return
+    try { setImage(await shrinkImage(file)); setError(undefined) } catch (err) { setError((err as Error).message) }
   }
   return (
     <Modal title="New product" onClose={onClose}>
@@ -199,7 +206,7 @@ function NewProduct({ onClose, onCreated, showMaker }: { onClose: () => void; on
             )}
           </Field>
         )}
-        <Field label="Product name" error={fieldError(error, "name")}>{(id) => <Input id={id} value={name} onChange={(e) => setName(e.target.value)} required />}</Field>
+        <Field label="Product name" error={fieldError(typeof error === "string" ? undefined : error, "name")}>{(id) => <Input id={id} value={name} onChange={(e) => setName(e.target.value)} required />}</Field>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Pack size" hint="e.g. 1 kg packet">{(id) => <Input id={id} value={packSize} onChange={(e) => setPackSize(e.target.value)} required />}</Field>
           <Field label="Category">
@@ -210,6 +217,14 @@ function NewProduct({ onClose, onCreated, showMaker }: { onClose: () => void; on
             )}
           </Field>
         </div>
+        <Field label="Photo (optional)" hint="Shown to shoppers after they scan. It is shrunk before upload.">
+          {(id) => (
+            <div className="flex items-center gap-3">
+              {image ? <img src={image} alt="" className="size-14 rounded-control object-cover" /> : <ProductImage category={category} name="" className="size-14" />}
+              <input id={id} type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => void pick(e.target.files?.[0])} className="text-sm" />
+            </div>
+          )}
+        </Field>
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" onClick={onClose}>Back</Button>
           <Button variant="primary" type="submit" disabled={busy || !name || !packSize || (showMaker && !maker)}>{busy ? "Adding…" : "Add product"}</Button>

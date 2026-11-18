@@ -1,9 +1,11 @@
 import QRCode from "qrcode"
 import { useEffect, useState, type FormEvent } from "react"
 import { Link, useParams } from "react-router"
+import { ProductImage } from "../components/ProductImage"
 import { Button, Chip, ErrorNote, Field, Input, Modal, PageHeader, Panel, Skeleton } from "../components/ui"
 import { api, type ApiError } from "../lib/api"
 import { useAuth } from "../lib/auth"
+import { shrinkImage } from "../lib/image"
 import { STAGE_LABELS, batchStatus, formatDate, groupCode, timeAgo, unitsToCsv } from "../lib/format"
 import { useLoad } from "../lib/hooks"
 import type { BatchDetail as BatchDetailT, GeneratedUnit, Lifecycle } from "../lib/types"
@@ -37,6 +39,17 @@ export function BatchDetail() {
   const status = batchStatus(b)
   const areaNames = b.designatedRegionIds.map((r) => regions.data?.find((x) => x.id === r)?.name ?? r)
 
+  async function changePhoto(file: File | null | undefined) {
+    if (file === undefined) return
+    setError(undefined)
+    try {
+      await api.setProductImage(b!.productId, file ? await shrinkImage(file) : null)
+      batch.reload()
+    } catch (err) {
+      setError(err instanceof Error && !("status" in err) ? err.message : (err as ApiError))
+    }
+  }
+
   async function advance(from: Lifecycle, to: Lifecycle) {
     setError(undefined)
     try {
@@ -57,6 +70,23 @@ export function BatchDetail() {
           subtitle={`${b.packSize} · ${b.manufacturerName}`}
           actions={<><span className="font-mono text-sm text-ink-2">{b.batchCode}</span>{status === "recalled" ? <Chip tone="bad">Recalled</Chip> : status === "expired" ? <Chip>Expired</Chip> : status === "expiring" ? <Chip tone="warn">Expiring soon</Chip> : <Chip tone="good">Active</Chip>}</>}
         />
+
+        <div className="mb-6 flex items-center gap-4">
+          <ProductImage url={b.imageUrl} category={b.category} name={b.productName} className="size-24" />
+          {canEdit && (
+            <div className="space-y-1.5 text-sm">
+              <div className="font-medium">Product photo</div>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="inline-flex h-9 cursor-pointer items-center rounded-control border border-line bg-surface px-3 font-medium hover:bg-line-2">
+                  {b.imageUrl ? "Change photo" : "Add photo"}
+                  <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => void changePhoto(e.target.files?.[0])} />
+                </label>
+                {b.imageUrl && <Button onClick={() => void changePhoto(null)}>Remove</Button>}
+              </div>
+              <p className="text-ink-2">Shoppers see it after they scan. Without one, a drawing for the category is shown.</p>
+            </div>
+          )}
+        </div>
 
         {b.recall && (
           <div role="status" className="mb-6 rounded-control border border-stop/30 bg-stop-soft px-4 py-3 text-stop">

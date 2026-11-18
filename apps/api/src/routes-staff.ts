@@ -8,7 +8,7 @@ import {
   AlertViewSchema, BatchViewSchema, CategorySchema, IdParam, LifecycleSchema, Limit, RoleSchema,
   ScanViewSchema, UserViewSchema, VerdictSchema,
 } from "./schemas.ts"
-import { LIFECYCLE_ORDER, shortId, type Store } from "./store.ts"
+import { LIFECYCLE_ORDER, imageUrl, shortId, type Store } from "./store.ts"
 
 const STAFF = ["admin", "manufacturer", "inspector"] as const
 const MAKERS = ["admin", "manufacturer"] as const
@@ -25,6 +25,9 @@ async function ownBatch(store: Store, u: AuthUser, id: string) {
 }
 
 const MAX_UNITS_PER_REQUEST = 5000
+/** A picture is a data URL of at most about 100 KB (the console shrinks it before sending). */
+const IMAGE_DATA_URL = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/
+const MAX_IMAGE_CHARS = 140_000
 
 export function staffRoutes(route: Route, store: Store, keys: KeyStore, config: Config): void {
   /* ---------- overview ---------- */
@@ -104,7 +107,7 @@ export function staffRoutes(route: Route, store: Store, keys: KeyStore, config: 
 
   /* ---------- products ---------- */
 
-  const ProductView = z.object({ id: z.string(), manufacturerId: z.string(), name: z.string(), category: CategorySchema, packSize: z.string() })
+  const ProductView = z.object({ id: z.string(), manufacturerId: z.string(), name: z.string(), category: CategorySchema, packSize: z.string(), imageUrl: z.string().nullable() })
 
   route({
     method: "GET", url: "/v1/products", tag: "Catalogue", auth: [...STAFF], summary: "List products",
@@ -116,12 +119,29 @@ export function staffRoutes(route: Route, store: Store, keys: KeyStore, config: 
     body: z.object({
       name: z.string().trim().min(2).max(120), category: CategorySchema, packSize: z.string().trim().min(1).max(60),
       manufacturerId: z.string().optional(),
+      image: z.string().regex(IMAGE_DATA_URL).max(MAX_IMAGE_CHARS).optional(),
     }),
     response: z.object({ id: z.string() }),
     handler: async ({ body, user }) => {
       const manufacturerId = user!.role === "manufacturer" ? user!.manufacturerId : body.manufacturerId
       if (!manufacturerId || !(await store.manufacturerName(manufacturerId))) throw badRequest("VALIDATION_FAILED", "manufacturerId is required and must exist")
-      return { id: await store.insertProduct({ manufacturerId, name: body.name, category: body.category, packSize: body.packSize }) }
+      const id = await store.insertProduct({ manufacturerId, name: body.name, category: body.category, packSize: body.packSize })
+      if (body.image) await store.setProductImage(id, body.image)
+      return { id }
+    },
+  })
+
+  route({
+    method: "PATCH", url: "/v1/products/:id/image", tag: "Catalogue", auth: [...MAKERS], summary: "Set or remove a product's picture",
+    params: IdParam,
+    body: z.object({ image: z.string().regex(IMAGE_DATA_URL, "Send a PNG, JPEG or WebP picture as a data URL").max(MAX_IMAGE_CHARS, "The picture is too large; use one under about 100 KB").nullable() }),
+    response: z.object({ imageUrl: z.string().nullable() }),
+    handler: async ({ params, body, user }) => {
+      const p = await store.product(params.id)
+      // 404, not 403: do not reveal another manufacturer's product.
+      if (!p || (user!.role === "manufacturer" && p.manufacturerId !== user!.manufacturerId)) throw notFound("Product")
+      await store.setProductImage(p.id, body.image)
+      return { imageUrl: imageUrl(p.id, body.image?.length ?? null) }
     },
   })
 

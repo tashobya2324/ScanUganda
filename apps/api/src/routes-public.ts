@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { HttpError, type Route } from "./http.ts"
+import { HttpError, raw, type Route } from "./http.ts"
 import { verifyPassword, hashPassword, signToken } from "./auth.ts"
 import {
   ChannelSchema, PositionSchema, RegionSchema, ScanOutcomeSchema, ScannerRoleSchema, UserViewSchema,
@@ -155,6 +155,17 @@ export function publicRoutes(route: Route, store: Store, config: Config): void {
   })
 
   /* ---------- auth ---------- */
+
+  route({
+    method: "GET", url: "/v1/products/:id/image", tag: "Catalogue", auth: "public",
+    summary: "A product's picture (public: shown in scan results)",
+    params: z.object({ id: z.string().min(1).max(64) }),
+    handler: async ({ params }) => {
+      const m = /^data:(image\/(?:png|jpeg|webp));base64,(.+)$/.exec((await store.productImage(params.id)) ?? "")
+      if (!m) throw new HttpError(404, "NOT_FOUND", "No picture for this product")
+      return raw({ contentType: m[1]!, body: Uint8Array.from(atob(m[2]!), (ch) => ch.charCodeAt(0)), headers: { "Cache-Control": "public, max-age=86400" } })
+    },
+  })
 
   route({
     method: "POST", url: "/v1/auth/login", tag: "Auth", auth: "public", rateLimit: config.loginRateLimit,

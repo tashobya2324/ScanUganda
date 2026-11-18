@@ -26,6 +26,7 @@ export interface Product {
   name: string
   category: Category
   packSize: string
+  imageUrl: string | null
 }
 
 export interface Batch {
@@ -40,6 +41,7 @@ export interface Batch {
   recall: { at: number; reason: string } | null
   productName: string
   packSize: string
+  imageUrl: string | null
   category: Category
   manufacturerName: string
   unitCount: number

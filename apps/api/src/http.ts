@@ -34,7 +34,7 @@ export interface Raw {
   __raw: true
   status?: number
   contentType: string
-  body: string
+  body: string | Uint8Array<ArrayBuffer>
   headers?: Record<string, string>
 }
 export const raw = (r: Omit<Raw, "__raw">): Raw => ({ __raw: true, ...r })

@@ -1,3 +1,4 @@
+import { ProductImage } from "../components/ProductImage"
 import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { InstallCard } from "../components/Install"
@@ -95,6 +96,7 @@ export function HistoryRow({ r }: { r: ScanRecord }) {
   return (
     <li>
       <Link to={`/result/${r.id}`} className="flex min-h-16 items-center gap-3 px-4 py-3 active:bg-line-2">
+        {r.product && <ProductImage url={r.product.imageUrl} category={r.product.category} name={r.product.productName} className="size-11" />}
         <div className="min-w-0 flex-1">
           <div className="truncate font-medium">{r.product?.productName ?? r.label}</div>
           <div className="num text-sm text-ink-2">

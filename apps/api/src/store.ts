@@ -40,7 +40,11 @@ interface BatchRow {
   region_ids: string
 }
 
+/** Address of a product's picture; the length changes when the picture does, so caches refresh. */
+export const imageUrl = (productId: string, length: number | null): string | null => (length ? `/v1/products/${productId}/image?v=${length}` : null)
+
 export interface BatchView extends Batch {
+  imageUrl: string | null
   productName: string
   packSize: string
   category: ProductCategory
@@ -217,9 +221,9 @@ export class Store implements KeyRows {
 
   /** What a shopper is shown about a product. Cheaper than `batchView`: no unit count. */
   async productInfo(batchId: string) {
-    const r = await get<{ batch_code: string; manufactured_at: number; expires_at: number; product_name: string; pack_size: string; category: string; manufacturer_name: string }>(
+    const r = await get<{ batch_code: string; manufactured_at: number; expires_at: number; product_name: string; pack_size: string; category: string; manufacturer_name: string; product_id: string; image_len: number | null }>(
       this.q,
-      `SELECT b.batch_code, b.manufactured_at, b.expires_at, p.name AS product_name, p.pack_size, p.category, m.name AS manufacturer_name
+      `SELECT b.batch_code, b.manufactured_at, b.expires_at, p.name AS product_name, p.pack_size, p.category, m.name AS manufacturer_name, b.product_id, LENGTH(p.image) AS image_len
          FROM batches b JOIN products p ON p.id = b.product_id JOIN manufacturers m ON m.id = b.manufacturer_id WHERE b.id = $1`,
       batchId,
     )
@@ -231,6 +235,7 @@ export class Store implements KeyRows {
       batchCode: r.batch_code,
       manufacturedAt: r.manufactured_at,
       expiresAt: r.expires_at,
+      imageUrl: imageUrl(r.product_id, r.image_len),
     }
   }
 
@@ -267,17 +272,23 @@ export class Store implements KeyRows {
     await run(this.q, "INSERT INTO products VALUES ($1,$2,$3,$4,$5)", id, p.manufacturerId, p.name, p.category, p.packSize)
     return id
   }
+  async setProductImage(id: string, image: string | null): Promise<void> {
+    await run(this.q, "UPDATE products SET image = $1 WHERE id = $2", image, id)
+  }
+  async productImage(id: string): Promise<string | undefined> {
+    return (await get<{ image: string | null }>(this.q, "SELECT image FROM products WHERE id = $1", id))?.image ?? undefined
+  }
   async products(manufacturerId?: string, id?: string) {
     const where = new Where()
     if (manufacturerId) where.add("manufacturer_id = ?", manufacturerId)
     if (id) where.add("id = ?", id)
     return (
-      await all<{ id: string; manufacturer_id: string; name: string; category: ProductCategory; pack_size: string }>(
+      await all<{ id: string; manufacturer_id: string; name: string; category: ProductCategory; pack_size: string; image_len: number | null }>(
         this.q,
-        `SELECT * FROM products ${where} ORDER BY name`,
+        `SELECT id, manufacturer_id, name, category, pack_size, LENGTH(image) AS image_len FROM products ${where} ORDER BY name`,
         ...where.params,
       )
-    ).map((p) => ({ id: p.id, manufacturerId: p.manufacturer_id, name: p.name, category: p.category, packSize: p.pack_size }))
+    ).map((p) => ({ id: p.id, manufacturerId: p.manufacturer_id, name: p.name, category: p.category, packSize: p.pack_size, imageUrl: imageUrl(p.id, p.image_len) }))
   }
   async product(id: string) {
     return (await this.products(undefined, id))[0]
@@ -327,9 +338,9 @@ export class Store implements KeyRows {
     const where = new Where()
     if (manufacturerId) where.add("b.manufacturer_id = ?", manufacturerId)
     if (id) where.add("b.id = ?", id)
-    const rows = await all<BatchRow & { product_name: string; pack_size: string; category: ProductCategory; manufacturer_name: string; unit_count: number }>(
+    const rows = await all<BatchRow & { product_name: string; pack_size: string; category: ProductCategory; manufacturer_name: string; unit_count: number; image_len: number | null }>(
       this.q,
-      `SELECT b.*, p.name AS product_name, p.pack_size, p.category, m.name AS manufacturer_name, ${REGION_IDS},
+      `SELECT b.*, LENGTH(p.image) AS image_len, p.name AS product_name, p.pack_size, p.category, m.name AS manufacturer_name, ${REGION_IDS},
               (SELECT COUNT(*) FROM units u WHERE u.batch_id = b.id) AS unit_count
          FROM batches b JOIN products p ON p.id = b.product_id JOIN manufacturers m ON m.id = b.manufacturer_id
          ${where}
@@ -343,6 +354,7 @@ export class Store implements KeyRows {
       category: r.category,
       manufacturerName: r.manufacturer_name,
       unitCount: r.unit_count,
+      imageUrl: imageUrl(r.product_id, r.image_len),
     }))
   }
 

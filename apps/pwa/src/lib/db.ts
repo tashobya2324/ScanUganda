@@ -13,6 +13,8 @@ export interface ProductInfo {
   batchCode: string
   manufacturedAt: number
   expiresAt: number
+  /** Relative address of the product photo; absent on checks saved before photos existed. */
+  imageUrl?: string | null
 }
 
 /**

@@ -4,6 +4,9 @@ import type {
 } from "./types"
 
 const BASE: string = import.meta.env.VITE_API_URL ?? ""
+
+/** Full address of a picture the API returned as a relative path. */
+export const imageSrc = (url: string): string => BASE + url
 const STORAGE_KEY = "scanuganda.session"
 
 export class ApiError extends Error {
@@ -97,7 +100,9 @@ export const api = {
   regions: () => request<Region[]>("GET", "/v1/regions"),
 
   products: () => request<Product[]>("GET", "/v1/products"),
-  createProduct: (p: { name: string; category: Category; packSize: string; manufacturerId?: string }) =>
+  setProductImage: (id: string, image: string | null) =>
+    request<{ imageUrl: string | null }>("PATCH", `/v1/products/${id}/image`, { image }),
+  createProduct: (p: { name: string; category: Category; packSize: string; manufacturerId?: string; image?: string }) =>
     request<{ id: string }>("POST", "/v1/products", p),
 
   batches: () => request<Batch[]>("GET", "/v1/batches"),

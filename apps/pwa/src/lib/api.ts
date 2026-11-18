@@ -3,6 +3,9 @@ import type { CacheSnapshot, ProductInfo } from "./db"
 
 const BASE: string = import.meta.env.VITE_API_URL ?? ""
 
+/** Full address of a picture the API returned as a relative path. */
+export const imageSrc = (url: string): string => BASE + url
+
 export class ApiError extends Error {
   constructor(
     /** 0 means the server could not be reached at all. */
