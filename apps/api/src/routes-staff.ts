@@ -255,6 +255,17 @@ export function staffRoutes(route: Route, store: Store, keys: KeyStore, config: 
   })
 
   route({
+    method: "GET", url: "/v1/repeat-scans", tag: "Alerts", auth: [...STAFF],
+    summary: "Codes that were scanned many times (admins and inspectors see all; a manufacturer sees their own)",
+    query: z.object({ min: z.coerce.number().int().min(2).max(100).default(3), limit: Limit }),
+    response: z.array(z.object({
+      batchId: z.string(), batchCode: z.string(), productName: z.string(), serial: z.string(),
+      scans: z.number(), places: z.number(), lastScannedAt: z.number(), boughtAt: z.number().nullable(),
+    })),
+    handler: ({ query, user }) => store.repeatScans({ manufacturerId: scopeOf(user!), min: query.min, limit: query.limit }),
+  })
+
+  route({
     method: "PATCH", url: "/v1/alerts/:id", tag: "Alerts", auth: [...STAFF], summary: "Change an alert's status or assignee",
     params: IdParam, body: z.object({ status: z.enum(["open", "investigating", "resolved"]), assignedTo: z.string().optional() }),
     response: AlertViewSchema,

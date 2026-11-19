@@ -40,6 +40,8 @@ export interface ScanRecord {
   serverScanId?: string
   /** Set when a later server check turned an offline CHECK into STOP: the user must be told. */
   worsened?: boolean
+  /** When the user told us they bought this item; its code is used up from then on. */
+  boughtAt?: number
 }
 
 export interface QueuedScan {

@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link } from "react-router"
-import { Button, Chip, Empty, ErrorNote, PageHeader, Panel, TableSkeleton } from "../components/ui"
+import { Button, Chip, Empty, ErrorNote, PageHeader, Panel, TableSkeleton, td, th, tr } from "../components/ui"
 import { api, type ApiError } from "../lib/api"
 import { useAuth } from "../lib/auth"
 import { ALERT_LABELS, timeAgo } from "../lib/format"
@@ -40,6 +40,7 @@ export function Alerts() {
     <>
       <PageHeader title="Alerts" subtitle="Situations the system could not clear on its own, most urgent first." />
       {(alerts.error || actionError) && <div className="mb-4"><ErrorNote error={(alerts.error ?? actionError)!} retry={alerts.error ? alerts.reload : undefined} /></div>}
+      <RepeatScans />
       <Panel flush>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-2 p-3">
           <div className="flex gap-1" role="tablist" aria-label="Alert status">
@@ -98,5 +99,42 @@ export function Alerts() {
         )}
       </Panel>
     </>
+  )
+}
+
+/** Codes scanned many times: shown to admins and inspectors for everything, to a manufacturer for their own products. */
+function RepeatScans() {
+  const { user } = useAuth()
+  const repeats = useLoad(() => api.repeatScans({ min: 3, limit: 10 }), [], 30_000)
+  const rows = repeats.data ?? []
+  if (repeats.error || (!repeats.loading && rows.length === 0)) return null
+  return (
+    <div className="mb-6">
+      <Panel
+        title="Codes scanned many times"
+        action={<span className="text-sm text-ink-2">{user?.role === "manufacturer" ? "Your products" : "All products"} · 3 scans or more</span>}
+        flush
+      >
+        {repeats.loading ? <TableSkeleton rows={3} /> : (
+          <table className="w-full text-sm">
+            <thead><tr><th className={th}>Product</th><th className={th}>Batch · unit</th><th className={`${th} text-right`}>Scans</th><th className={`${th} text-right`}>Places</th><th className={th}>Last scan</th><th className={th}>Status</th></tr></thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={`${r.batchId}-${r.serial}`} className={tr}>
+                  <td className={`${td} font-medium`}>{r.productName}</td>
+                  <td className={td}><Link to={`/batches/${r.batchId}`} className="font-mono text-accent hover:underline">{r.batchCode} · {r.serial}</Link></td>
+                  <td className={`${td} num text-right font-semibold`}>{r.scans}</td>
+                  <td className={`${td} num text-right`}>{r.places}</td>
+                  <td className={`${td} text-ink-2`}>{timeAgo(r.lastScannedAt)}</td>
+                  <td className={td}>
+                    {r.boughtAt ? <Chip tone="good">Bought, code used up</Chip> : r.places >= 3 ? <Chip tone="bad">Many places</Chip> : r.scans >= 5 ? <Chip tone="warn">Check</Chip> : <Chip tone="neutral">Watching</Chip>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Panel>
+    </div>
   )
 }

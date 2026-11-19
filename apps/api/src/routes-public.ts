@@ -194,6 +194,22 @@ export function publicRoutes(route: Route, store: Store, config: Config): void {
   })
 
   route({
+    method: "POST", url: "/v1/scans/:id/bought", tag: "Verify", auth: "public", rateLimit: 20,
+    summary: "The buyer marks the scanned item as bought: its code is used up from now on",
+    params: z.object({ id: z.string().min(1).max(64) }),
+    response: z.object({ boughtAt: z.number(), alreadyBought: z.boolean() }),
+    handler: async ({ params }) => {
+      // The scan id is only ever given to whoever scanned, so holding it is the proof of purchase.
+      const scan = await store.scanOwner(params.id)
+      if (!scan || !scan.batchId || !scan.serial) throw new HttpError(404, "NOT_FOUND", "No such scan")
+      if (scan.verdict !== "GENUINE") throw new HttpError(409, "NOT_GENUINE", "Only an item that checked out as genuine can be marked as bought")
+      const at = Date.now()
+      const first = await store.markSold(scan.batchId, scan.serial, at)
+      return { boughtAt: at, alreadyBought: !first }
+    },
+  })
+
+  route({
     method: "GET", url: "/v1/auth/me", tag: "Auth", auth: ["admin", "manufacturer", "inspector"],
     summary: "The signed-in user", response: UserViewSchema,
     handler: ({ user }) => ({ id: user!.id, email: user!.email, name: user!.name, role: user!.role, manufacturerId: user!.manufacturerId }),

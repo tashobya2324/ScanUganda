@@ -70,6 +70,7 @@ export const api = {
   sync: () => request<CacheSnapshot & { regions: unknown[] }>("GET", "/v1/sync"),
   uploadScans: (scans: { clientId: string; payload?: string; code?: string; scannedAt: number; position?: Position; scannerRole: "consumer" | "retailer" }[]) =>
     request<{ results: SyncResult[] }>("POST", "/v1/sync/scans", { scans }, 20000),
+  markBought: (scanId: string) => request<{ boughtAt: number; alreadyBought: boolean }>("POST", `/v1/scans/${encodeURIComponent(scanId)}/bought`, {}),
   report: (r: { description: string; shopName?: string; position?: Position; scanId?: string; contact?: string }) =>
     request<{ id: string }>("POST", "/v1/reports", r),
 }

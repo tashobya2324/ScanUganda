@@ -51,6 +51,17 @@ export interface BatchDetail extends Batch {
   lifecycle: Record<Lifecycle, number>
 }
 
+export interface RepeatScan {
+  batchId: string
+  batchCode: string
+  productName: string
+  serial: string
+  scans: number
+  places: number
+  lastScannedAt: number
+  boughtAt: number | null
+}
+
 export interface Alert {
   id: string
   scanId: string

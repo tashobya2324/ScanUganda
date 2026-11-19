@@ -1,6 +1,6 @@
 import type {
   Alert, AlertPriority, AlertStatus, Batch, BatchDetail, Category, GeneratedUnit, Lifecycle,
-  Overview, Product, Region, Role, Scan, User, Verdict,
+  Overview, Product, Region, RepeatScan, Role, Scan, User, Verdict,
 } from "./types"
 
 const BASE: string = import.meta.env.VITE_API_URL ?? ""
@@ -119,6 +119,7 @@ export const api = {
 
   alerts: (f: { status?: AlertStatus; priority?: AlertPriority; limit?: number } = {}) =>
     request<Alert[]>("GET", "/v1/alerts" + qs(f)),
+  repeatScans: (f: { min?: number; limit?: number } = {}) => request<RepeatScan[]>("GET", "/v1/repeat-scans" + qs(f)),
   updateAlert: (id: string, status: AlertStatus, assignedTo?: string) =>
     request<Alert>("PATCH", `/v1/alerts/${id}`, { status, assignedTo }),
 

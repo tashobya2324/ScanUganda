@@ -173,4 +173,12 @@ CREATE TABLE sealed_signing_keys (
 ALTER TABLE products ADD COLUMN image TEXT;
 `,
   },
+  {
+    id: "005_unit_sold_at",
+    // Set when the buyer taps "I bought this": from then on the unit's code is used up and
+    // any later scan is answered STOP (a copy).
+    sql: /* sql */ `
+ALTER TABLE units ADD COLUMN sold_at BIGINT;
+`,
+  },
 ]

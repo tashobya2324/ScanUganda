@@ -3,6 +3,8 @@ import {
   checkLifecycle,
   checkRecall,
   checkSignature,
+  checkScatter,
+  checkSold,
   checkSpatial,
   checkTemporal,
 } from "./rules.ts"
@@ -101,6 +103,8 @@ export function verifyScan(input: VerifyInput): VerifyResult {
     checkLifecycle(unit.lifecycle, context.scannerRole),
     checkSpatial(batch.designatedRegionIds, regions, context.position),
     checkTemporal(priorScans, context, config),
+    checkScatter(priorScans, context, config),
+    checkSold(unit.soldAt, context.at),
   )
   return combine(checks)
 }

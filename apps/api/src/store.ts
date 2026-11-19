@@ -374,12 +374,20 @@ export class Store implements KeyRows {
     return (await run(this.q, "INSERT INTO units VALUES ($1,$2,$3,$4) ON CONFLICT (lookup_hash) DO NOTHING", serial, batchId, "IN_FACTORY", lookupHash)) === 1
   }
   async unit(batchId: string, serial: string): Promise<Unit | undefined> {
-    const r = await get<{ serial: string; batch_id: string; lifecycle: LifecycleState }>(this.q, "SELECT * FROM units WHERE batch_id = $1 AND serial = $2", batchId, serial)
-    return r ? { serial: r.serial, batchId: r.batch_id, lifecycle: r.lifecycle } : undefined
+    const r = await get<{ serial: string; batch_id: string; lifecycle: LifecycleState; sold_at: number | null }>(this.q, "SELECT * FROM units WHERE batch_id = $1 AND serial = $2", batchId, serial)
+    return r ? { serial: r.serial, batchId: r.batch_id, lifecycle: r.lifecycle, soldAt: r.sold_at } : undefined
   }
   async unitByLookupHash(hash: string): Promise<Unit | undefined> {
-    const r = await get<{ serial: string; batch_id: string; lifecycle: LifecycleState }>(this.q, "SELECT * FROM units WHERE lookup_hash = $1", hash)
-    return r ? { serial: r.serial, batchId: r.batch_id, lifecycle: r.lifecycle } : undefined
+    const r = await get<{ serial: string; batch_id: string; lifecycle: LifecycleState; sold_at: number | null }>(this.q, "SELECT * FROM units WHERE lookup_hash = $1", hash)
+    return r ? { serial: r.serial, batchId: r.batch_id, lifecycle: r.lifecycle, soldAt: r.sold_at } : undefined
+  }
+  /** Marks a unit as bought. Returns false when it already was (the first buyer's time stands). */
+  async markSold(batchId: string, serial: string, at: number): Promise<boolean> {
+    return (await run(this.q, "UPDATE units SET sold_at = $1 WHERE batch_id = $2 AND serial = $3 AND sold_at IS NULL", at, batchId, serial)) > 0
+  }
+  async scanOwner(id: string): Promise<{ batchId: string | null; serial: string | null; verdict: Verdict } | undefined> {
+    const r = await get<{ batch_id: string | null; serial: string | null; verdict: Verdict }>(this.q, "SELECT batch_id, serial, verdict FROM scans WHERE id = $1", id)
+    return r ? { batchId: r.batch_id, serial: r.serial, verdict: r.verdict } : undefined
   }
   async unitCountsByLifecycle(batchId: string): Promise<Record<LifecycleState, number>> {
     const out: Record<LifecycleState, number> = { IN_FACTORY: 0, IN_TRANSIT: 0, AT_DISTRIBUTOR: 0, AT_RETAIL: 0 }
@@ -479,6 +487,28 @@ export class Store implements KeyRows {
         ...where.params,
       )
     ).map((r) => this.toAlert(r))
+  }
+  /** Codes scanned `min` times or more, most scanned first. A manufacturer sees only their own. */
+  async repeatScans(f: { manufacturerId?: string; min: number; limit: number }) {
+    const params: Param[] = []
+    const scope = f.manufacturerId ? `AND b.manufacturer_id = $${params.push(f.manufacturerId)}` : ""
+    const min = `$${params.push(f.min)}`
+    const limit = `$${params.push(f.limit)}`
+    return (
+      await all<{ batch_id: string; batch_code: string; product_name: string; serial: string; scans: number; places: number; last_at: number; sold_at: number | null }>(
+        this.q,
+        `SELECT b.id AS batch_id, b.batch_code, p.name AS product_name, s.serial, COUNT(*) AS scans,
+                COUNT(DISTINCT (ROUND(s.lat::numeric, 1)::text || ',' || ROUND(s.lng::numeric, 1)::text)) AS places,
+                MAX(s.scanned_at) AS last_at, u.sold_at
+           FROM scans s JOIN batches b ON b.id = s.batch_id JOIN products p ON p.id = b.product_id
+           LEFT JOIN units u ON u.batch_id = s.batch_id AND u.serial = s.serial
+          WHERE s.serial IS NOT NULL ${scope}
+          GROUP BY b.id, b.batch_code, p.name, s.serial, u.sold_at
+         HAVING COUNT(*) >= ${min}
+          ORDER BY scans DESC, last_at DESC LIMIT ${limit}`,
+        ...params,
+      )
+    ).map((r) => ({ batchId: r.batch_id, batchCode: r.batch_code, productName: r.product_name, serial: r.serial, scans: r.scans, places: r.places, lastScannedAt: r.last_at, boughtAt: r.sold_at }))
   }
   async alert(id: string): Promise<(AlertView & { manufacturerId: string | null }) | undefined> {
     const r = await get<Record<string, unknown>>(this.q, `${this.alertSelect} WHERE a.id = $1`, id)

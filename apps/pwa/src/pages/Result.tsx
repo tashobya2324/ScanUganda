@@ -4,7 +4,8 @@ import { ProductImage } from "../components/ProductImage"
 import { Banner, Button, Icon, VERDICT_BG, VERDICT_HEX, VerdictShape, type MarkVerdict } from "../components/ui"
 import { formatDate, useT, type StringKey } from "../i18n"
 import { db, type ScanRecord } from "../lib/db"
-import { useDataVersion } from "../lib/bus"
+import { ApiError, api } from "../lib/api"
+import { notifyChange, useDataVersion } from "../lib/bus"
 
 export function Result() {
   const { id = "" } = useParams()
@@ -42,6 +43,7 @@ export function Result() {
     )
   }
 
+  const canBuy = record.status === "confirmed" && record.verdict === "GENUINE" && !!record.serverScanId && !rejectedOf(record)
   const verdict: MarkVerdict = record.verdict ?? "PENDING"
   const rejected = record.status === "rejected"
   const key = (part: "word" | "title" | "body") => `verdict.${verdict}.${part}` as StringKey
@@ -64,6 +66,8 @@ export function Result() {
 
       <section className="flex-1 space-y-5 px-5 pb-40 pt-6">
         {record.status === "offline" && <Banner tone="warn" icon="offline">{t("result.offlineNote")}</Banner>}
+
+        {canBuy && <BoughtCard record={record} />}
 
         {record.reasons.length > 0 && !rejected && (
           <div>
@@ -102,6 +106,40 @@ export function Result() {
         <Button variant="primary" onClick={() => nav("/scan", { replace: true })}><Icon name="scan" /> {t("result.scanAnother")}</Button>
         {!rejected && record.verdict !== "GENUINE" && <Button onClick={() => nav("/report", { state: { scanId: record.serverScanId } })}>{t("result.report")}</Button>}
       </div>
+    </div>
+  )
+}
+
+const rejectedOf = (r: ScanRecord) => r.status === "rejected"
+
+/** "I bought this": tells the server the item is sold, which uses up its code on the spot. */
+function BoughtCard({ record }: { record: ScanRecord }) {
+  const { t } = useT()
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<string>()
+
+  async function buy() {
+    setBusy(true)
+    setMessage(undefined)
+    try {
+      const r = await api.markBought(record.serverScanId!)
+      await db.historyPut({ ...record, boughtAt: r.boughtAt })
+      notifyChange()
+      setMessage(r.alreadyBought ? t("result.bought.already") : t("result.bought.done"))
+    } catch (e) {
+      setMessage(e instanceof ApiError && e.status === 0 ? t("result.bought.offline") : t("common.error"))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (record.boughtAt) return <Banner tone="info" role="status">{message ?? t("result.bought.done")}</Banner>
+  return (
+    <div className="rounded-panel border border-line bg-surface p-4">
+      <h2 className="font-semibold">{t("result.bought.title")}</h2>
+      <p className="mt-1 text-sm text-ink-2">{t("result.bought.body")}</p>
+      {message && <p role="alert" className="mt-2 text-sm text-check">{message}</p>}
+      <Button variant="primary" className="mt-3" disabled={busy} onClick={() => void buy()}>{busy ? t("checking.title") : t("result.bought.button")}</Button>
     </div>
   )
 }

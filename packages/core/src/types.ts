@@ -69,6 +69,8 @@ export interface Unit {
   serial: string
   batchId: string
   lifecycle: LifecycleState
+  /** When the buyer marked it as bought. From then on the code is dead: any later scan is a copy. */
+  soldAt?: number | null
 }
 
 export interface PriorScan {
@@ -110,6 +112,8 @@ export type ReasonCode =
   | "REPEAT_LIMIT"
   | "OFFLINE_UNCONFIRMED"
   | "LOCATION_UNAVAILABLE"
+  | "MANY_LOCATIONS"
+  | "ALREADY_BOUGHT"
 
 export interface Reason {
   code: ReasonCode
@@ -141,10 +145,22 @@ export interface RuleConfig {
   minTravelKm: number
   /** Scans of one unit (all places) before it is treated as a possible clone. */
   maxScansPerUnit: number
+  /** From this many scans of one unit, raise a low-priority alert (the verdict stays as it is). */
+  flagScans: number
+  /** Scans of one unit closer together than this count as the same place. */
+  scatterKm: number
+  /** Distinct places at which one unit may be scanned before it is called suspicious (CHECK). */
+  maxPlaces: number
+  /** Distinct places at which it is treated as a copy (STOP). */
+  stopPlaces: number
 }
 
 export const DEFAULT_RULE_CONFIG: RuleConfig = {
   maxSpeedKmh: 120,
   minTravelKm: 5,
   maxScansPerUnit: 5,
+  flagScans: 3,
+  scatterKm: 25,
+  maxPlaces: 3,
+  stopPlaces: 5,
 }

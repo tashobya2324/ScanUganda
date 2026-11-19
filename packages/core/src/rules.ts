@@ -4,6 +4,7 @@ import type {
   Batch,
   LifecycleState,
   PriorScan,
+  Position,
   Region,
   RuleConfig,
   RuleResult,
@@ -148,6 +149,61 @@ export function checkSpatial(
   }
 }
 
+/* ---------- scattered scans and bought items ---------- */
+
+/**
+ * A real unit sits in a few places: a shop, a home. One that keeps turning up in many
+ * different towns is a printed copy being used on many products. Scans closer than
+ * `scatterKm` count as one place. maxPlaces places is suspicious (CHECK); stopPlaces is a copy (STOP).
+ */
+export function checkScatter(
+  priorScans: PriorScan[],
+  context: Pick<ScanContext, "position">,
+  config: RuleConfig,
+): RuleResult {
+  const rule = "scatter"
+  const centres: Position[] = []
+  for (const p of [...priorScans.map((s) => s.position), context.position]) {
+    if (!p) continue
+    if (!centres.some((c) => effectiveDistanceKm(p, c) < config.scatterKm)) centres.push(p)
+  }
+  const places = centres.length
+  if (places < config.maxPlaces) return pass(rule)
+  const copy = places >= config.stopPlaces
+  return {
+    rule,
+    outcome: copy ? "stop" : "check",
+    reason: {
+      code: "MANY_LOCATIONS",
+      message: `This code has been scanned in ${places} different places. A real item is not found in so many. It may be copied.`,
+    },
+    alert: {
+      type: "COUNTERFEIT_SUSPECTED",
+      priority: "high",
+      message: `Same unit scanned in ${places} different places (${copy ? "treated as a copy" : "suspicious"}).`,
+    },
+  }
+}
+
+/** Once the buyer has marked an item as bought, its code is used up: later scans are copies. */
+export function checkSold(soldAt: number | null | undefined, now: number): RuleResult {
+  const rule = "sold"
+  if (soldAt === null || soldAt === undefined || now <= soldAt) return pass(rule)
+  return {
+    rule,
+    outcome: "stop",
+    reason: {
+      code: "ALREADY_BOUGHT",
+      message: "This item was already marked as bought, so its code is used up. If you are the buyer, you are fine; if not, this may be a copy.",
+    },
+    alert: {
+      type: "COUNTERFEIT_SUSPECTED",
+      priority: "high",
+      message: "A code was scanned after the item was marked as bought.",
+    },
+  }
+}
+
 /* ---------- P1-8: temporal ---------- */
 
 /** "under a minute", "1 minute", "45 minutes", "3.5 hours" */
@@ -216,6 +272,18 @@ export function checkTemporal(
         type: "DUPLICATE_SCANS",
         priority: "medium",
         message: `Unit scanned ${priorScans.length + 1} times (limit ${config.maxScansPerUnit}).`,
+      },
+    }
+  }
+  // Not yet suspicious, but worth the owner's attention: tell them without changing the answer.
+  if (priorScans.length + 1 >= config.flagScans) {
+    return {
+      rule,
+      outcome: "pass",
+      alert: {
+        type: "DUPLICATE_SCANS",
+        priority: "low",
+        message: `Unit scanned ${priorScans.length + 1} times so far.`,
       },
     }
   }

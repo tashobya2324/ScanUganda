@@ -36,7 +36,7 @@ afterAll(async () => {
 describe("postgres driver", () => {
   it("runs the multi-statement migrations and records them", async () => {
     expect((await all<{ id: string }>(db, "SELECT id FROM schema_migrations ORDER BY id")).map((r) => r.id)).toEqual([
-      "001_init", "002_scan_client_id", "003_sealed_signing_keys", "004_product_images",
+      "001_init", "002_scan_client_id", "003_sealed_signing_keys", "004_product_images", "005_unit_sold_at",
     ])
     expect(await migrate(db)).toEqual([])
   })
